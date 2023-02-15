@@ -46,22 +46,22 @@ impl State for TokenState {
     }
 }
 
-pub struct LambdaState<F> where F: Fn(char) -> bool {
+pub struct LambdaState {
     dest: Rc<dyn State>,
-    lambda: F,
+    lambda: fn(char) -> bool,
 }
 
-impl<F> LambdaState<F> where F: Fn(char) -> bool {
-    pub fn new(lambda: F) -> Self {
+impl LambdaState {
+    pub fn new(lambda: fn(char) -> bool) -> Self {
         Self::init(lambda, Rc::new(TrivialState::default()))
     }
 
-    fn init(lambda: F, dest: Rc<dyn State>) -> Self {
+    fn init(lambda: fn(char) -> bool, dest: Rc<dyn State>) -> Self {
         LambdaState { dest, lambda }
     }
 }
 
-impl<F> State for LambdaState<F> where F: Fn(char) -> bool {
+impl State for LambdaState  {
     fn epsilon(&self) -> &[Rc<dyn State>] {
         &([] as [Rc<dyn State>; 0])
     }
