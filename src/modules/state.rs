@@ -61,7 +61,7 @@ impl LambdaState {
     }
 }
 
-impl State for LambdaState  {
+impl State for LambdaState {
     fn epsilon(&self) -> &[Rc<dyn State>] {
         &([] as [Rc<dyn State>; 0])
     }
