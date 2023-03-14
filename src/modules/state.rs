@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
+use std::ptr;
 use std::rc::Rc;
 use std::slice::from_ref;
 
@@ -19,6 +20,12 @@ impl Debug for dyn State {
             .field("type", &self.get_state_type())
             .field("dest", &self.get_dest())
             .finish()
+    }
+}
+
+impl PartialEq for dyn State {
+    fn eq(&self, other: &Self) -> bool {
+        ptr::eq(self, other)
     }
 }
 
