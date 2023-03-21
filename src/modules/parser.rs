@@ -1,7 +1,7 @@
 use super::automata::{concat, or, closure, optional, Automata};
 use super::utils;
 
-const CONCAT_CHAR: char = 27 as char;
+const POP_ERR: &str = "error popping from stack";
 
 pub struct Parser {
     automata: Automata,
@@ -15,25 +15,25 @@ impl Parser {
         for c in postfix.chars() {
             match c {
                 '|' => {
-                    let b = automata_stack.pop().ok_or("error popping from stack")?;
-                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                    let b = automata_stack.pop().ok_or(POP_ERR)?;
+                    let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(or(a, b));
                 }
-                CONCAT_CHAR => {
-                    let b = automata_stack.pop().ok_or("error popping from stack")?;
-                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                utils::CONCAT_CHAR => {
+                    let b = automata_stack.pop().ok_or(POP_ERR)?;
+                    let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(concat(a, b));
                 }
                 '*' => {
-                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                    let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(closure(a));
                 }
                 '?' => {
-                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                    let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(optional(a));
                 }
                 '+' => {
-                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                    let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(plus(a));
                 }
                 _ => automata_stack.push(Automata::from_token(c)),

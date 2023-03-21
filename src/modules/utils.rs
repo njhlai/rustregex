@@ -1,4 +1,4 @@
-const CONCAT_CHAR: char = 27 as char;
+pub const CONCAT_CHAR: char = 27 as char;
 
 pub fn to_postfix(expr: &str) -> String {
     let modified_expr = add_concat_char(expr);
