@@ -1,6 +1,7 @@
 const CONCAT_CHAR: char = 27 as char;
 
 pub fn to_postfix(expr: &str) -> String {
+    let modified_expr = add_concat_char(expr);
     let mut postfix = String::new();
     let mut operator_stack = Vec::<char>::new();
     let precedence = |c| match c {
@@ -9,7 +10,7 @@ pub fn to_postfix(expr: &str) -> String {
         _ => 2,
     };
 
-    for c in expr.chars() {
+    for c in modified_expr.chars() {
         match c {
             '|' | CONCAT_CHAR | '*' | '?' | '+' => {
                 let curr_precedence = precedence(c);
@@ -36,4 +37,24 @@ pub fn to_postfix(expr: &str) -> String {
     }
 
     postfix
+}
+
+pub fn add_concat_char(expr: &str) -> String {
+    let mut result = String::new();
+    let mut it = expr.chars();
+    if let Some(first) = it.next() {
+        result.push(first);
+        let mut prev = first;
+
+        for c in it {
+            if !matches!(prev, '(' | '|') && !matches!(c, ')' | '|' | '*' | '?' | '+') {
+                result.push(CONCAT_CHAR);
+            }
+
+            result.push(c);
+            prev = c;
+        }
+    }
+
+    result
 }
