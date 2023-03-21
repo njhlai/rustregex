@@ -32,7 +32,10 @@ impl Parser {
                     let a = automata_stack.pop().ok_or("error popping from stack")?;
                     automata_stack.push(optional(a));
                 }
-                '+' => todo!(),
+                '+' => {
+                    let a = automata_stack.pop().ok_or("error popping from stack")?;
+                    automata_stack.push(plus(a));
+                }
                 _ => automata_stack.push(Automata::from_token(c)),
             }
         }

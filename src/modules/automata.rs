@@ -106,3 +106,15 @@ pub fn optional(a: Automata) -> Automata {
 
     Automata { start, end }
 }
+
+pub fn plus(a: Automata) -> Automata {
+    let start = TrivialState::make_rc();
+    let end = TrivialState::make_rc();
+
+    start.borrow_mut().push(a.start.clone());
+
+    a.push_to_end(a.start.clone());
+    a.push_to_end(end.clone());
+
+    Automata { start, end }
+}
