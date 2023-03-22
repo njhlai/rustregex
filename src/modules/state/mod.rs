@@ -2,6 +2,7 @@ mod lambda;
 mod token;
 mod trivial;
 
+pub use self::lambda::LambdaState;
 pub use self::token::TokenState;
 pub use self::trivial::TrivialState;
 

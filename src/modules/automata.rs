@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
-use super::state::{State, TokenState, TrivialState};
+use super::state::{LambdaState, State, TokenState, TrivialState};
 
 type StatePtr = Rc<RefCell<dyn State>>;
 
@@ -15,6 +15,14 @@ impl Automata {
     pub fn from_token(token: char) -> Self {
         let end = TrivialState::make_rc();
         let start = Rc::new(RefCell::new(TokenState::new(token, end.clone())));
+
+        Automata { start, end }
+    }
+
+    pub fn from_lambda(lambda: fn(char) -> bool) -> Self {
+        let end = TrivialState::make_rc();
+        let start = Rc::new(RefCell::new(LambdaState::new(lambda, end.clone())));
+
         Automata { start, end }
     }
 

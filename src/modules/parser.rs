@@ -36,6 +36,7 @@ impl Parser {
                     let a = automata_stack.pop().ok_or(POP_ERR)?;
                     automata_stack.push(plus(a));
                 }
+                '.' => automata_stack.push(Automata::from_lambda(|_| true)),
                 _ => automata_stack.push(Automata::from_token(c)),
             }
         }
