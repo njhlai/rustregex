@@ -40,9 +40,6 @@ impl Debug for Automata {
 }
 
 fn exhaust_epsilons(states: Vec<StatePtr>) -> Vec<StatePtr> {
-    let mut destinations: Vec<StatePtr> = Vec::new();
-    let mut visited_states: Vec<StatePtr> = Vec::new();
-
     fn traverse_epsilons(destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr) {
         let state_locked = state.borrow();
         let reachables = state_locked.epsilon();
@@ -56,6 +53,9 @@ fn exhaust_epsilons(states: Vec<StatePtr>) -> Vec<StatePtr> {
             traverse_epsilons(destinations, visited_states, candidate);
         }
     }
+
+    let mut destinations: Vec<StatePtr> = Vec::new();
+    let mut visited_states: Vec<StatePtr> = Vec::new();
 
     states
         .iter()
