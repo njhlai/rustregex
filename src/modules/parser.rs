@@ -48,7 +48,11 @@ impl Parser {
         }
     }
 
-    pub fn search(&self, expr: &str) -> bool {
-        self.automata.search(expr)
+    pub fn full_match(&self, expr: &str) -> bool {
+        self.automata.full_match(expr)
+    }
+
+    pub fn greedy_search(&self, expr: &str) -> Option<String> {
+        self.automata.greedy_search(expr)
     }
 }

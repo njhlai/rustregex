@@ -30,7 +30,7 @@ impl Automata {
         self.end.borrow_mut().push(state);
     }
 
-    pub fn search(&self, expr: &str) -> bool {
+    pub fn full_match(&self, expr: &str) -> bool {
         let mut current_states = exhaust_epsilons(vec![self.start.clone()]);
 
         for c in expr.chars() {
@@ -38,6 +38,30 @@ impl Automata {
         }
 
         current_states.contains(&(self.end.clone() as StatePtr))
+    }
+
+    pub fn greedy_search(&self, expr: &str) -> Option<String> {
+        let mut current_states = vec![];
+        let (mut start, mut end) = (0, 0);
+
+        for (r, c) in expr.chars().enumerate() {
+            current_states.push(exhaust_epsilons(vec![self.start.clone()]));
+
+            let mut found = false;
+            for (l, states) in current_states.iter_mut().enumerate() {
+                *states = exhaust_epsilons(states.iter().filter_map(|s| s.borrow().transition(c)).collect());
+
+                if !found && states.contains(&(self.end.clone() as StatePtr)) && end - start < r - l + 1 {
+                    start = l;
+                    end = r + 1;
+                    found = true;
+                }
+            }
+        }
+
+        if end - start > 0 {
+            Some(String::from(&expr[start..end]))
+        } else { None }
     }
 }
 
