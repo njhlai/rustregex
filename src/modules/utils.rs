@@ -32,8 +32,8 @@ pub fn to_postfix(expr: &str) -> String {
         }
     }
 
-    for c in operator_stack {
-        postfix.push(c);
+    while let Some(op) = operator_stack.pop() {
+        postfix.push(op);
     }
 
     postfix
