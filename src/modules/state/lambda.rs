@@ -1,4 +1,6 @@
+use std::any::Any;
 use std::cell::RefCell;
+use std::ptr;
 use std::rc::Rc;
 use std::slice;
 
@@ -34,5 +36,16 @@ impl State for LambdaState {
 
     fn get_state_type(&self) -> String {
         String::from("Lambda State")
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn equals(&self, other: &dyn State) -> bool {
+        other
+            .as_any()
+            .downcast_ref::<LambdaState>()
+            .map_or(false, |a| ptr::eq(self, a))
     }
 }

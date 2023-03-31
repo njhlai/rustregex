@@ -26,6 +26,11 @@ impl Automata {
         Automata { start, end }
     }
 
+    fn get_end(&self) -> StatePtr {
+        // the `clone' function only clones the reference-counted pointer, so this should be ok...
+        self.end.clone() as StatePtr
+    }
+
     fn push_to_end(&self, state: StatePtr) {
         self.end.borrow_mut().push(state);
     }
@@ -37,7 +42,7 @@ impl Automata {
             current_states = exhaust_epsilons(current_states.iter().filter_map(|s| s.borrow().transition(c)).collect());
         }
 
-        current_states.contains(&(self.end.clone() as StatePtr))
+        current_states.contains(&self.get_end())
     }
 
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
@@ -51,7 +56,7 @@ impl Automata {
             for (l, states) in current_states.iter_mut().enumerate() {
                 *states = exhaust_epsilons(states.iter().filter_map(|s| s.borrow().transition(c)).collect());
 
-                if !found && states.contains(&(self.end.clone() as StatePtr)) && end - start < r - l + 1 {
+                if !found && states.contains(&self.get_end()) && end - start < r - l + 1 {
                     start = l;
                     end = r + 1;
                     found = true;

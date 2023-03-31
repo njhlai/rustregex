@@ -6,9 +6,9 @@ pub use self::lambda::LambdaState;
 pub use self::token::TokenState;
 pub use self::trivial::TrivialState;
 
+use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
-use std::ptr;
 use std::rc::Rc;
 
 pub trait State {
@@ -19,6 +19,10 @@ pub trait State {
     fn get_dest(&self) -> &[Rc<RefCell<dyn State>>];
 
     fn get_state_type(&self) -> String;
+
+    fn as_any(&self) -> &dyn Any;
+
+    fn equals(&self, other: &dyn State) -> bool;
 }
 
 impl Debug for dyn State {
@@ -32,6 +36,6 @@ impl Debug for dyn State {
 
 impl PartialEq for dyn State {
     fn eq(&self, other: &Self) -> bool {
-        ptr::eq(self, other)
+        self.equals(other)
     }
 }
