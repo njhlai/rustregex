@@ -1,4 +1,4 @@
-use super::automata::{concat, or, closure, optional, Automata};
+use super::automata::{concat, or, closure, plus, optional, Automata};
 use super::utils;
 
 const POP_ERR: &str = "error popping from stack";
