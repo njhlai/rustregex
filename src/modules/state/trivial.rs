@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::ptr;
 use std::rc::Rc;
 
-use super::State;
+use super::{Anchor, State};
 
 #[derive(Default)]
 pub struct TrivialState {
@@ -21,7 +21,7 @@ impl TrivialState {
 }
 
 impl State for TrivialState {
-    fn epsilon(&self) -> &[Rc<RefCell<dyn State>>] {
+    fn epsilon(&self, _: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>] {
         &self.dest[..]
     }
 

@@ -1,4 +1,5 @@
 use super::automata::{concat, or, closure, plus, optional, Automata};
+use super::state::Anchor;
 use super::utils;
 
 const POP_ERR: &str = "error popping from stack";
@@ -14,6 +15,8 @@ impl Parser {
 
         for c in postfix.chars() {
             match c {
+                '^' => automata_stack.push(Automata::from_anchor(Anchor::Start)),
+                '$' => automata_stack.push(Automata::from_anchor(Anchor::End)),
                 '|' => {
                     let b = automata_stack.pop().ok_or(POP_ERR)?;
                     let a = automata_stack.pop().ok_or(POP_ERR)?;

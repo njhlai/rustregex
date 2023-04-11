@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
-use super::state::{LambdaState, State, TokenState, TrivialState};
+use super::state::{Anchor, AnchorState, LambdaState, State, TokenState, TrivialState};
 
 type StatePtr = Rc<RefCell<dyn State>>;
 
@@ -26,6 +26,13 @@ impl Automata {
         Automata { start, end }
     }
 
+    pub fn from_anchor(anchor: Anchor) -> Self {
+        let end = TrivialState::make_rc();
+        let start = Rc::new(RefCell::new(AnchorState::new(anchor, end.clone())));
+
+        Automata { start, end }
+    }
+
     fn get_end(&self) -> StatePtr {
         // the `clone' function only clones the reference-counted pointer, so this should be ok...
         self.end.clone() as StatePtr
@@ -36,11 +43,12 @@ impl Automata {
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
-        let mut current_states = exhaust_epsilons(vec![self.start.clone()]);
+        let mut current_states = exhaust_epsilons(vec![self.start.clone()], &Some(Anchor::Start));
 
         for c in expr.chars() {
-            current_states = exhaust_epsilons(current_states.iter().filter_map(|s| s.borrow().transition(c)).collect());
+            current_states = exhaust_epsilons(current_states.iter().filter_map(|s| s.borrow().transition(c)).collect(), &None);
         }
+        current_states = exhaust_epsilons(current_states, &Some(Anchor::End));
 
         current_states.contains(&self.get_end())
     }
@@ -49,12 +57,24 @@ impl Automata {
         let mut current_states = vec![];
         let (mut start, mut end) = (0, 0);
 
-        for (r, c) in expr.chars().enumerate() {
-            current_states.push(exhaust_epsilons(vec![self.start.clone()]));
+        let mut expr_peekable = expr.chars().enumerate().peekable();
+        let mut anchor = Some(Anchor::Start);
+        while let Some((r, c)) = expr_peekable.next() {
+            current_states.push(exhaust_epsilons(vec![self.start.clone()], &anchor));
+
+            anchor = if let Some((_, peek_c)) = expr_peekable.peek() {
+                if c.is_alphanumeric() == peek_c.is_alphanumeric() {
+                    None
+                } else {
+                    Some(Anchor::WordBoundary)
+                }
+            } else {
+                Some(Anchor::End)
+            };
 
             let mut found = false;
             for (l, states) in current_states.iter_mut().enumerate() {
-                *states = exhaust_epsilons(states.iter().filter_map(|s| s.borrow().transition(c)).collect());
+                *states = exhaust_epsilons(states.iter().filter_map(|s| s.borrow().transition(c)).collect(), &anchor);
 
                 if !found && states.contains(&self.get_end()) && end - start < r - l + 1 {
                     start = l;
@@ -66,7 +86,9 @@ impl Automata {
 
         if end - start > 0 {
             Some(String::from(&expr[start..end]))
-        } else { None }
+        } else {
+            None
+        }
     }
 }
 
@@ -76,10 +98,12 @@ impl Debug for Automata {
     }
 }
 
-fn exhaust_epsilons(states: Vec<StatePtr>) -> Vec<StatePtr> {
-    fn traverse_epsilons(destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr) {
+fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<StatePtr> {
+    fn traverse_epsilons(
+        destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr, anchor: &Option<Anchor>,
+    ) {
         let state_locked = state.borrow();
-        let reachables = state_locked.epsilon();
+        let reachables = state_locked.epsilon(anchor);
 
         if reachables.is_empty() { destinations.push(state.clone()); }
 
@@ -87,7 +111,7 @@ fn exhaust_epsilons(states: Vec<StatePtr>) -> Vec<StatePtr> {
             if visited_states.contains(candidate) { continue; }
 
             visited_states.push(candidate.clone());
-            traverse_epsilons(destinations, visited_states, candidate);
+            traverse_epsilons(destinations, visited_states, candidate, anchor);
         }
     }
 
@@ -96,7 +120,7 @@ fn exhaust_epsilons(states: Vec<StatePtr>) -> Vec<StatePtr> {
 
     states
         .iter()
-        .for_each(|s| traverse_epsilons(&mut destinations, &mut visited_states, s));
+        .for_each(|s| traverse_epsilons(&mut destinations, &mut visited_states, s, anchor));
 
     destinations
 }

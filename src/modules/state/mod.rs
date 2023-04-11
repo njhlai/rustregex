@@ -1,7 +1,10 @@
+mod anchor;
 mod lambda;
 mod token;
 mod trivial;
 
+pub use self::anchor::Anchor;
+pub use self::anchor::AnchorState;
 pub use self::lambda::LambdaState;
 pub use self::token::TokenState;
 pub use self::trivial::TrivialState;
@@ -12,7 +15,7 @@ use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
 pub trait State {
-    fn epsilon(&self) -> &[Rc<RefCell<dyn State>>];
+    fn epsilon(&self, anchor: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>];
 
     fn transition(&self, token: char) -> Option<Rc<RefCell<dyn State>>>;
 

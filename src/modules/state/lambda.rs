@@ -4,7 +4,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::slice;
 
-use super::State;
+use super::{Anchor, State};
 
 pub struct LambdaState {
     dest: Rc<RefCell<dyn State>>,
@@ -18,7 +18,7 @@ impl LambdaState {
 }
 
 impl State for LambdaState {
-    fn epsilon(&self) -> &[Rc<RefCell<dyn State>>] {
+    fn epsilon(&self, _: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>] {
         &([] as [Rc<RefCell<dyn State>>; 0])
     }
 
