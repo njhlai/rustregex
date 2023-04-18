@@ -1,16 +1,28 @@
 use std::any::Any;
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::ptr;
 use std::rc::Rc;
 use std::slice;
 
 use super::State;
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq)]
 pub enum Anchor {
     Start,
     End,
     WordBoundary,
+}
+
+impl PartialOrd for Anchor {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match (self, other) {
+            (x, y) if x == y => Some(Ordering::Equal),
+            (Anchor::WordBoundary, _) => Some(Ordering::Greater),
+            (_, Anchor::WordBoundary) => Some(Ordering::Less),
+            _ => None
+        }
+    }
 }
 
 pub struct AnchorState {
