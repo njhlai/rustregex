@@ -121,16 +121,36 @@ mod tests {
     }
 
     #[test]
-    fn anchors() {
-        let testexpr = "^Dhelmise$";
+    fn regex_start_anchor() {
+        let testexpr = "^abc+";
 
-        let parser = Parser::new(testexpr);
-        assert!(parser.is_ok());
+		let parser = Parser::new(testexpr);
+		assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
-            assert_eq!(Some(String::from("Dhelmise")), regex.greedy_search("Dhelmise"));
-        }
-    }
+			assert_eq!(regex.greedy_search("abc"), Some(String::from("abc")));
+			assert_eq!(regex.greedy_search("abcd"), Some(String::from("abc")));
+			assert_eq!(regex.greedy_search("abcdabccc"), Some(String::from("abc")));
+			assert_eq!(regex.greedy_search("abcccc"), Some(String::from("abcccc")));
+			assert_eq!(regex.greedy_search("eeabc"), None);
+		}
+	}
+
+	#[test]
+    fn regex_end_anchor() {
+        let testexpr = "xyz+$";
+
+		let parser = Parser::new(testexpr);
+		assert!(parser.is_ok());
+
+        if let Ok(regex) = parser {
+			assert_eq!(regex.greedy_search("xyz"), Some(String::from("xyz")));
+			assert_eq!(regex.greedy_search("wxyz"), Some(String::from("xyz")));
+			assert_eq!(regex.greedy_search("xxxyzwxyz"), Some(String::from("xyz")));
+			assert_eq!(regex.greedy_search("xyzzzz"), Some(String::from("xyzzzz")));
+			assert_eq!(regex.greedy_search("xyzaa"), None);
+		}
+	}
 
     #[test]
     fn bad_anchors() {
