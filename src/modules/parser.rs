@@ -1,4 +1,4 @@
-use super::automata::{concat, or, closure, plus, optional, Automata};
+use super::automata::{closure, concat, optional, or, plus, Automata};
 use super::state::Anchor;
 use super::utils;
 

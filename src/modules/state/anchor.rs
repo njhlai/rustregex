@@ -1,9 +1,8 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::ptr;
 use std::rc::Rc;
-use std::slice;
+use std::{ptr, slice};
 
 use super::State;
 
@@ -20,7 +19,7 @@ impl PartialOrd for Anchor {
             (x, y) if x == y => Some(Ordering::Equal),
             (Anchor::WordBoundary, _) => Some(Ordering::Greater),
             (_, Anchor::WordBoundary) => Some(Ordering::Less),
-            _ => None
+            _ => None,
         }
     }
 }

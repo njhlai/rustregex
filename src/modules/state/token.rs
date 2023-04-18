@@ -1,8 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::ptr;
 use std::rc::Rc;
-use std::slice;
+use std::{ptr, slice};
 
 use super::{Anchor, State};
 
