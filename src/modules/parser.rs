@@ -26,25 +26,25 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '^' => automata_stack.push(Automata::from_anchor(Anchor::Start)),
             '$' => automata_stack.push(Automata::from_anchor(Anchor::End)),
             '|' => {
-                let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let b = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.or(b));
             }
             CONCAT_CHAR => {
-                let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let b = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.concat(b));
             }
             '*' => {
-                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.closure());
             }
             '?' => {
-                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.optional());
             }
             '+' => {
-                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.plus());
             }
             '.' => automata_stack.push(Automata::from_lambda(|_| true)),
@@ -57,7 +57,7 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
     } else {
         automata_stack
             .pop()
-            .ok_or(Error::from("Interal error: final stack is empty"))
+            .ok_or_else(|| Error::from("Interal error: final stack is empty"))
     }
 }
 

@@ -17,7 +17,7 @@ fn main() {
                 println!("full match:     {}", regexp.full_match(&s));
                 println!(
                     "greedy search: \"{}\"",
-                    regexp.greedy_search(&s).unwrap_or(String::new())
+                    regexp.greedy_search(&s).unwrap_or_default()
                 );
             }
             Err(err) => println!("Error: {}", err.msg),
