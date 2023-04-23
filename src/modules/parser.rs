@@ -1,49 +1,69 @@
 use super::automata::{closure, concat, optional, or, plus, Automata};
 use super::state::Anchor;
 
+#[derive(Debug)]
+pub struct Error {
+    #[allow(dead_code)]
+    msg: String,
+}
+
+impl Error {
+    pub fn from(msg: &str) -> Error {
+        Error {
+            msg: String::from(msg),
+        }
+    }
+}
+
 const CONCAT_CHAR: char = 27 as char;
 const POP_ERR: &str = "error popping from stack";
 
-pub fn parse(expr: &str) -> Result<Automata, &'static str> {
-    let postfix = to_postfix(expr);
-        let mut automata_stack = Vec::<Automata>::new();
+pub fn parse(expr: &str) -> Result<Automata, Error> {
+    let postfix = to_postfix(expr)?;
+    let mut automata_stack = Vec::<Automata>::new();
 
-        for c in postfix.chars() {
-            match c {
-                '^' => automata_stack.push(Automata::from_anchor(Anchor::Start)),
-                '$' => automata_stack.push(Automata::from_anchor(Anchor::End)),
-                '|' => {
-                    let b = automata_stack.pop().ok_or(POP_ERR)?;
-                    let a = automata_stack.pop().ok_or(POP_ERR)?;
-                    automata_stack.push(or(a, b));
-                }
-                CONCAT_CHAR => {
-                    let b = automata_stack.pop().ok_or(POP_ERR)?;
-                    let a = automata_stack.pop().ok_or(POP_ERR)?;
-                    automata_stack.push(concat(a, b));
-                }
-                '*' => {
-                    let a = automata_stack.pop().ok_or(POP_ERR)?;
-                    automata_stack.push(closure(a));
-                }
-                '?' => {
-                    let a = automata_stack.pop().ok_or(POP_ERR)?;
-                    automata_stack.push(optional(a));
-                }
-                '+' => {
-                    let a = automata_stack.pop().ok_or(POP_ERR)?;
-                    automata_stack.push(plus(a));
-                }
-                '.' => automata_stack.push(Automata::from_lambda(|_| true)),
-                _ => automata_stack.push(Automata::from_token(c)),
+    for c in postfix.chars() {
+        match c {
+            '^' => automata_stack.push(Automata::from_anchor(Anchor::Start)),
+            '$' => automata_stack.push(Automata::from_anchor(Anchor::End)),
+            '|' => {
+                let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                automata_stack.push(or(a, b));
             }
+            CONCAT_CHAR => {
+                let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                automata_stack.push(concat(a, b));
+            }
+            '*' => {
+                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                automata_stack.push(closure(a));
+            }
+            '?' => {
+                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                automata_stack.push(optional(a));
+            }
+            '+' => {
+                let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
+                automata_stack.push(plus(a));
+            }
+            '.' => automata_stack.push(Automata::from_lambda(|_| true)),
+            _ => automata_stack.push(Automata::from_token(c)),
         }
+    }
 
-        automata_stack.pop().ok_or("Error parsing expression given!")
+    if automata_stack.len() > 1 {
+        Err(Error::from("Interal error: final stack is too large"))
+    } else {
+        automata_stack
+            .pop()
+            .ok_or(Error::from("Interal error: final stack is empty"))
+    }
 }
 
-fn to_postfix(expr: &str) -> String {
-    let modified_expr = add_concat_char(expr);
+fn to_postfix(expr: &str) -> Result<String, Error> {
+    let modified_expr = add_concat_char(expr)?;
     let mut postfix = String::new();
     let mut operator_stack = Vec::<char>::new();
     let precedence = |c| match c {
@@ -57,7 +77,9 @@ fn to_postfix(expr: &str) -> String {
             '|' | CONCAT_CHAR | '*' | '?' | '+' => {
                 let curr_precedence = precedence(c);
                 while let Some(&op) = operator_stack.last() {
-                    if (op == '(') || (precedence(op) < curr_precedence) { break; }
+                    if (op == '(') || (precedence(op) < curr_precedence) {
+                        break;
+                    }
                     operator_stack.pop();
                     postfix.push(op);
                 }
@@ -66,7 +88,9 @@ fn to_postfix(expr: &str) -> String {
             '(' => operator_stack.push(c),
             ')' => {
                 while let Some(token) = operator_stack.pop() {
-                    if token == '(' { break; }
+                    if token == '(' {
+                        break;
+                    }
                     postfix.push(token);
                 }
             }
@@ -78,10 +102,16 @@ fn to_postfix(expr: &str) -> String {
         postfix.push(op);
     }
 
-    postfix
+    Ok(postfix)
 }
 
-fn add_concat_char(expr: &str) -> String {
+fn add_concat_char(expr: &str) -> Result<String, Error> {
+    if let Some(pos) = expr.find(CONCAT_CHAR) {
+        return Err(Error {
+            msg: format!("Illegal character at index {}", pos),
+        });
+    }
+
     let mut result = String::new();
     let mut it = expr.chars();
     if let Some(first) = it.next() {
@@ -98,5 +128,5 @@ fn add_concat_char(expr: &str) -> String {
         }
     }
 
-    result
+    Ok(result)
 }
