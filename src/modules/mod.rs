@@ -1,4 +1,4 @@
 pub mod automata;
-pub mod parser;
+pub mod regexp;
 mod state;
-mod utils;
+mod parser;

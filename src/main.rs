@@ -1,7 +1,7 @@
 mod modules;
 
 use modules::automata::{closure, concat, optional, or, plus, Automata};
-use modules::parser::Parser;
+use modules::regexp::RegExp;
 
 fn main() {
 }
@@ -74,7 +74,7 @@ mod tests {
     fn regex_search() {
         let testexpr = "(a|b)*cd?e+f*";
 
-        let parser = Parser::new(testexpr);
+        let parser = RegExp::new(testexpr);
         assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
@@ -100,7 +100,7 @@ mod tests {
     fn simple_regex() {
         let testexpr = "ba*";
 
-        let parser = Parser::new(testexpr);
+        let parser = RegExp::new(testexpr);
         assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
@@ -124,7 +124,7 @@ mod tests {
     fn regex_start_anchor() {
         let testexpr = "^abc+";
 
-        let parser = Parser::new(testexpr);
+        let parser = RegExp::new(testexpr);
         assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
@@ -140,7 +140,7 @@ mod tests {
     fn regex_end_anchor() {
         let testexpr = "xyz+$";
 
-        let parser = Parser::new(testexpr);
+        let parser = RegExp::new(testexpr);
         assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
@@ -156,7 +156,7 @@ mod tests {
     fn bad_anchor() {
         let testexpr = "$Dhelmise";
 
-        let parser = Parser::new(testexpr);
+        let parser = RegExp::new(testexpr);
         assert!(parser.is_ok());
 
         if let Ok(regex) = parser {
