@@ -7,7 +7,7 @@ fn main() {
     // something to get rid of unused code warnings
     loop {
         let regexp_input = get_user_input("regular expression: ");
-        if regexp_input == "" {
+        if regexp_input.is_empty() {
             break;
         }
 
@@ -17,7 +17,7 @@ fn main() {
                 println!("full match:     {}", regexp.full_match(&s));
                 println!(
                     "greedy search: \"{}\"",
-                    regexp.greedy_search(&s).unwrap_or(String::from(""))
+                    regexp.greedy_search(&s).unwrap_or(String::new())
                 );
             }
             Err(err) => println!("Error: {}", err.msg),
@@ -27,7 +27,7 @@ fn main() {
 }
 
 fn get_user_input(prompt: &str) -> String {
-    print!("{}", prompt);
+    print!("{prompt}");
     io::stdout().flush().unwrap(); // just panic if there is an error ¯\_(ツ)_/¯
 
     let mut input = String::new();
@@ -39,5 +39,6 @@ fn get_user_input(prompt: &str) -> String {
     if input != input.trim() {
         println!("WARNING: input starts or ends with whitespace");
     }
+
     input
 }

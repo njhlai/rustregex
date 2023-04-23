@@ -107,7 +107,7 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
 fn add_concat_char(expr: &str) -> Result<String, Error> {
     if let Some(pos) = expr.find(CONCAT_CHAR) {
         return Err(Error {
-            msg: format!("Illegal character at index {}", pos),
+            msg: format!("Illegal character at index {pos}"),
         });
     }
 
