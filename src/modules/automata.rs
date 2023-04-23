@@ -33,62 +33,68 @@ impl Automata {
         Automata { start, end }
     }
 
-    pub fn concat(a: Self, b: Self) -> Self {
-        a.push_to_end(b.start.clone());
-        Automata {
-            start: a.start,
-            end: b.end,
-        }
+    pub fn concat(mut self, other: &Automata) -> Self {
+        self.push_to_end(other.start.clone());
+        self.end = other.end.clone();
+        self
     }
 
-    pub fn or(a: Self, b: Self) -> Self {
+    pub fn or(mut self, other: &Automata) -> Self {
         let start = TrivialState::make_rc();
         let end = TrivialState::make_rc();
 
-        start.borrow_mut().push(a.start.clone());
-        start.borrow_mut().push(b.start.clone());
+        start.borrow_mut().push(self.start.clone());
+        start.borrow_mut().push(other.start.clone());
 
-        a.push_to_end(end.clone());
-        b.push_to_end(end.clone());
+        self.push_to_end(end.clone());
+        other.push_to_end(end.clone());
 
-        Automata { start, end }
+        self.start = start;
+        self.end = end;
+        self
     }
 
-    pub fn closure(a: Self) -> Self {
+    pub fn closure(mut self) -> Self {
         let start = TrivialState::make_rc();
         let end = TrivialState::make_rc();
 
-        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(self.start.clone());
         start.borrow_mut().push(end.clone());
 
-        a.push_to_end(a.start.clone());
-        a.push_to_end(end.clone());
+        self.push_to_end(self.start.clone());
+        self.push_to_end(end.clone());
 
-        Automata { start, end }
+        self.start = start;
+        self.end = end;
+        self
     }
 
-    pub fn optional(a: Self) -> Self {
+    pub fn optional(mut self) -> Self {
         let start = TrivialState::make_rc();
         let end = TrivialState::make_rc();
 
-        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(self.start.clone());
         start.borrow_mut().push(end.clone());
 
-        a.push_to_end(end.clone());
+        self.push_to_end(end.clone());
 
-        Automata { start, end }
+        self.start = start;
+        self.end = end;
+        self
     }
 
-    pub fn plus(a: Self) -> Self {
+    pub fn plus(mut self) -> Self {
         let start = TrivialState::make_rc();
         let end = TrivialState::make_rc();
 
-        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(self.start.clone());
 
-        a.push_to_end(a.start.clone());
-        a.push_to_end(end.clone());
+        self.push_to_end(self.start.clone());
+        self.push_to_end(end.clone());
 
-        Automata { start, end }
+        self.start = start;
+        self.end = end;
+        self
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
@@ -208,7 +214,7 @@ mod tests {
 
     #[test]
     fn nfa_concat() {
-        let nfa = Automata::concat(Automata::from_token('c'), Automata::from_token('d'));
+        let nfa = Automata::from_token('c').concat(&Automata::from_token('d'));
         assert!(nfa.full_match("cd"));
         assert!(!nfa.full_match("c"));
         assert!(!nfa.full_match("d"));
@@ -218,7 +224,7 @@ mod tests {
 
     #[test]
     fn nfa_union() {
-        let nfa = Automata::or(Automata::from_token('c'), Automata::from_token('d'));
+        let nfa = Automata::from_token('c').or(&Automata::from_token('d'));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match("d"));
         assert!(!nfa.full_match("cd"));
@@ -228,7 +234,7 @@ mod tests {
 
     #[test]
     fn nfa_closure() {
-        let nfa = Automata::closure(Automata::from_token('a'));
+        let nfa = Automata::from_token('a').closure();
         assert!(nfa.full_match(""));
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
@@ -237,7 +243,7 @@ mod tests {
 
     #[test]
     fn nfa_plus() {
-        let nfa = Automata::plus(Automata::from_token('a'));
+        let nfa = Automata::from_token('a').plus();
         assert!(!nfa.full_match(""));
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
@@ -246,7 +252,7 @@ mod tests {
 
     #[test]
     fn nfa_optional() {
-        let nfa = Automata::optional(Automata::from_token('a'));
+        let nfa = Automata::from_token('a').optional();
         assert!(nfa.full_match(""));
         assert!(nfa.full_match("a"));
         assert!(!nfa.full_match("b"));
@@ -257,13 +263,10 @@ mod tests {
     #[test]
     fn nfa_full_match() {
         // (ab?)*|c
-        let nfa = Automata::or(
-            Automata::closure(Automata::concat(
-                Automata::from_token('a'),
-                Automata::optional(Automata::from_token('b')),
-            )),
-            Automata::from_token('c'),
-        );
+        let nfa = Automata::from_token('a')
+            .concat(&(Automata::from_token('b').optional()))
+            .closure()
+            .or(&Automata::from_token('c'));
         assert!(nfa.full_match("abaaaaaa"));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match(""));
