@@ -39,11 +39,7 @@ pub fn parse(expr: &str) -> Result<Automata, &'static str> {
             }
         }
 
-        if let Some(automata) = automata_stack.pop() {
-            Ok( automata )
-        } else {
-            Err("Error parsing expression given!")
-        }
+        automata_stack.pop().ok_or("Error parsing expression given!")
 }
 
 fn to_postfix(expr: &str) -> String {
