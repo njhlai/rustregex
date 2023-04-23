@@ -33,20 +33,75 @@ impl Automata {
         Automata { start, end }
     }
 
-    fn get_end(&self) -> StatePtr {
-        // the `clone' function only clones the reference-counted pointer, so this should be ok...
-        self.end.clone() as StatePtr
+    pub fn concat(a: Self, b: Self) -> Self {
+        a.push_to_end(b.start.clone());
+        Automata {
+            start: a.start,
+            end: b.end,
+        }
     }
 
-    fn push_to_end(&self, state: StatePtr) {
-        self.end.borrow_mut().push(state);
+    pub fn or(a: Self, b: Self) -> Self {
+        let start = TrivialState::make_rc();
+        let end = TrivialState::make_rc();
+
+        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(b.start.clone());
+
+        a.push_to_end(end.clone());
+        b.push_to_end(end.clone());
+
+        Automata { start, end }
+    }
+
+    pub fn closure(a: Self) -> Self {
+        let start = TrivialState::make_rc();
+        let end = TrivialState::make_rc();
+
+        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(end.clone());
+
+        a.push_to_end(a.start.clone());
+        a.push_to_end(end.clone());
+
+        Automata { start, end }
+    }
+
+    pub fn optional(a: Self) -> Self {
+        let start = TrivialState::make_rc();
+        let end = TrivialState::make_rc();
+
+        start.borrow_mut().push(a.start.clone());
+        start.borrow_mut().push(end.clone());
+
+        a.push_to_end(end.clone());
+
+        Automata { start, end }
+    }
+
+    pub fn plus(a: Self) -> Self {
+        let start = TrivialState::make_rc();
+        let end = TrivialState::make_rc();
+
+        start.borrow_mut().push(a.start.clone());
+
+        a.push_to_end(a.start.clone());
+        a.push_to_end(end.clone());
+
+        Automata { start, end }
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
         let mut current_states = exhaust_epsilons(vec![self.start.clone()], &Some(Anchor::Start));
 
         for c in expr.chars() {
-            current_states = exhaust_epsilons(current_states.iter().filter_map(|s| s.borrow().transition(c)).collect(), &None);
+            current_states = exhaust_epsilons(
+                current_states
+                    .iter()
+                    .filter_map(|s| s.borrow().transition(c))
+                    .collect(),
+                &None,
+            );
         }
         current_states = exhaust_epsilons(current_states, &Some(Anchor::End));
 
@@ -74,7 +129,13 @@ impl Automata {
 
             let mut found = false;
             for (l, states) in current_states.iter_mut().enumerate() {
-                *states = exhaust_epsilons(states.iter().filter_map(|s| s.borrow().transition(c)).collect(), &anchor);
+                *states = exhaust_epsilons(
+                    states
+                        .iter()
+                        .filter_map(|s| s.borrow().transition(c))
+                        .collect(),
+                    &anchor,
+                );
 
                 if !found && states.contains(&self.get_end()) && end - start < r - l + 1 {
                     start = l;
@@ -90,6 +151,15 @@ impl Automata {
             None
         }
     }
+
+    fn get_end(&self) -> StatePtr {
+        // the `clone' function only clones the reference-counted pointer, so this should be ok...
+        self.end.clone() as StatePtr
+    }
+
+    fn push_to_end(&self, state: StatePtr) {
+        self.end.borrow_mut().push(state);
+    }
 }
 
 impl Debug for Automata {
@@ -100,15 +170,22 @@ impl Debug for Automata {
 
 fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<StatePtr> {
     fn traverse_epsilons(
-        destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr, anchor: &Option<Anchor>,
+        destinations: &mut Vec<StatePtr>,
+        visited_states: &mut Vec<StatePtr>,
+        state: &StatePtr,
+        anchor: &Option<Anchor>,
     ) {
         let state_locked = state.borrow();
         let reachables = state_locked.epsilon(anchor);
 
-        if reachables.is_empty() { destinations.push(state.clone()); }
+        if reachables.is_empty() {
+            destinations.push(state.clone());
+        }
 
         for candidate in reachables {
-            if visited_states.contains(candidate) { continue; }
+            if visited_states.contains(candidate) {
+                continue;
+            }
 
             visited_states.push(candidate.clone());
             traverse_epsilons(destinations, visited_states, candidate, anchor);
@@ -125,57 +202,73 @@ fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<State
     destinations
 }
 
-pub fn concat(a: Automata, b: Automata) -> Automata {
-    a.push_to_end(b.start.clone());
-    Automata { start: a.start, end: b.end }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-pub fn or(a: Automata, b: Automata) -> Automata {
-    let start = TrivialState::make_rc();
-    let end = TrivialState::make_rc();
+    #[test]
+    fn nfa_concat() {
+        let nfa = Automata::concat(Automata::from_token('c'), Automata::from_token('d'));
+        assert!(nfa.full_match("cd"));
+        assert!(!nfa.full_match("c"));
+        assert!(!nfa.full_match("d"));
+        assert!(!nfa.full_match(""));
+        assert!(!nfa.full_match("monty python"));
+    }
 
-    start.borrow_mut().push(a.start.clone());
-    start.borrow_mut().push(b.start.clone());
+    #[test]
+    fn nfa_union() {
+        let nfa = Automata::or(Automata::from_token('c'), Automata::from_token('d'));
+        assert!(nfa.full_match("c"));
+        assert!(nfa.full_match("d"));
+        assert!(!nfa.full_match("cd"));
+        assert!(!nfa.full_match(""));
+        assert!(!nfa.full_match("monty python"));
+    }
 
-    a.push_to_end(end.clone());
-    b.push_to_end(end.clone());
+    #[test]
+    fn nfa_closure() {
+        let nfa = Automata::closure(Automata::from_token('a'));
+        assert!(nfa.full_match(""));
+        assert!(nfa.full_match("a"));
+        assert!(nfa.full_match("aaa"));
+        assert!(!nfa.full_match("b"));
+    }
 
-    Automata { start, end }
-}
+    #[test]
+    fn nfa_plus() {
+        let nfa = Automata::plus(Automata::from_token('a'));
+        assert!(!nfa.full_match(""));
+        assert!(nfa.full_match("a"));
+        assert!(nfa.full_match("aaa"));
+        assert!(!nfa.full_match("b"));
+    }
 
-pub fn closure(a: Automata) -> Automata {
-    let start = TrivialState::make_rc();
-    let end = TrivialState::make_rc();
+    #[test]
+    fn nfa_optional() {
+        let nfa = Automata::optional(Automata::from_token('a'));
+        assert!(nfa.full_match(""));
+        assert!(nfa.full_match("a"));
+        assert!(!nfa.full_match("b"));
+        assert!(!nfa.full_match("ab"));
+        assert!(!nfa.full_match("ba"));
+    }
 
-    start.borrow_mut().push(a.start.clone());
-    start.borrow_mut().push(end.clone());
-
-    a.push_to_end(a.start.clone());
-    a.push_to_end(end.clone());
-
-    Automata { start, end }
-}
-
-pub fn optional(a: Automata) -> Automata {
-    let start = TrivialState::make_rc();
-    let end = TrivialState::make_rc();
-
-    start.borrow_mut().push(a.start.clone());
-    start.borrow_mut().push(end.clone());
-
-    a.push_to_end(end.clone());
-
-    Automata { start, end }
-}
-
-pub fn plus(a: Automata) -> Automata {
-    let start = TrivialState::make_rc();
-    let end = TrivialState::make_rc();
-
-    start.borrow_mut().push(a.start.clone());
-
-    a.push_to_end(a.start.clone());
-    a.push_to_end(end.clone());
-
-    Automata { start, end }
+    #[test]
+    fn nfa_full_match() {
+        // (ab?)*|c
+        let nfa = Automata::or(
+            Automata::closure(Automata::concat(
+                Automata::from_token('a'),
+                Automata::optional(Automata::from_token('b')),
+            )),
+            Automata::from_token('c'),
+        );
+        assert!(nfa.full_match("abaaaaaa"));
+        assert!(nfa.full_match("c"));
+        assert!(nfa.full_match(""));
+        assert!(!nfa.full_match("bb"));
+        assert!(!nfa.full_match("aaaaaaac"));
+        assert!(!nfa.full_match("cc"));
+    }
 }

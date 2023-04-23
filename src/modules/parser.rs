@@ -1,4 +1,4 @@
-use super::automata::{closure, concat, optional, or, plus, Automata};
+use super::automata::Automata;
 use super::state::Anchor;
 
 #[derive(Debug)]
@@ -29,24 +29,24 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '|' => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(or(a, b));
+                automata_stack.push(Automata::or(a, b));
             }
             CONCAT_CHAR => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(concat(a, b));
+                automata_stack.push(Automata::concat(a, b));
             }
             '*' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(closure(a));
+                automata_stack.push(Automata::closure(a));
             }
             '?' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(optional(a));
+                automata_stack.push(Automata::optional(a));
             }
             '+' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(plus(a));
+                automata_stack.push(Automata::plus(a));
             }
             '.' => automata_stack.push(Automata::from_lambda(|_| true)),
             _ => automata_stack.push(Automata::from_token(c)),
