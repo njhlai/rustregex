@@ -28,24 +28,24 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '|' => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(Automata::or(a, b));
+                automata_stack.push(a.or(&b));
             }
             CONCAT_CHAR => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(Automata::concat(a, b));
+                automata_stack.push(a.concat(&b));
             }
             '*' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(Automata::closure(a));
+                automata_stack.push(a.closure());
             }
             '?' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(Automata::optional(a));
+                automata_stack.push(a.optional());
             }
             '+' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(Automata::plus(a));
+                automata_stack.push(a.plus());
             }
             '.' => automata_stack.push(Automata::from_lambda(|_| true)),
             _ => automata_stack.push(Automata::from_token(c)),
@@ -107,7 +107,7 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
 fn add_concat_char(expr: &str) -> Result<String, Error> {
     if let Some(pos) = expr.find(CONCAT_CHAR) {
         return Err(Error {
-            msg: format!("Illegal character at index {}", pos),
+            msg: format!("Illegal character at index {pos}"),
         });
     }
 

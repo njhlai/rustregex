@@ -1,7 +1,5 @@
-use super::{
-    automata::Automata,
-    parser::{parse, Error},
-};
+use super::automata::Automata;
+use super::parser::{parse, Error};
 
 pub struct RegExp {
     automata: Automata,
