@@ -28,12 +28,12 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '|' => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(a.or(&b));
+                automata_stack.push(a.or(b));
             }
             CONCAT_CHAR => {
                 let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
-                automata_stack.push(a.concat(&b));
+                automata_stack.push(a.concat(b));
             }
             '*' => {
                 let a = automata_stack.pop().ok_or(Error::from(POP_ERR))?;

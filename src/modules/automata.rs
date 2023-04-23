@@ -33,13 +33,13 @@ impl Automata {
         Automata { start, end }
     }
 
-    pub fn concat(mut self, other: &Automata) -> Self {
+    pub fn concat(mut self, other: Automata) -> Self {
         self.push_to_end(other.start.clone());
         self.end = other.end.clone();
         self
     }
 
-    pub fn or(mut self, other: &Automata) -> Self {
+    pub fn or(mut self, mut other: Automata) -> Self {
         let start = TrivialState::make_rc();
         let end = TrivialState::make_rc();
 
@@ -163,7 +163,9 @@ impl Automata {
         self.end.clone() as StatePtr
     }
 
-    fn push_to_end(&self, state: StatePtr) {
+    // It's not necessary to consume a mutable reference, but this function does modify
+    // the underlying states. Requiring a mutable reference makes this clearer.
+    fn push_to_end(&mut self, state: StatePtr) {
         self.end.borrow_mut().push(state);
     }
 }
@@ -214,7 +216,7 @@ mod tests {
 
     #[test]
     fn nfa_concat() {
-        let nfa = Automata::from_token('c').concat(&Automata::from_token('d'));
+        let nfa = Automata::from_token('c').concat(Automata::from_token('d'));
         assert!(nfa.full_match("cd"));
         assert!(!nfa.full_match("c"));
         assert!(!nfa.full_match("d"));
@@ -224,7 +226,7 @@ mod tests {
 
     #[test]
     fn nfa_union() {
-        let nfa = Automata::from_token('c').or(&Automata::from_token('d'));
+        let nfa = Automata::from_token('c').or(Automata::from_token('d'));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match("d"));
         assert!(!nfa.full_match("cd"));
@@ -264,9 +266,9 @@ mod tests {
     fn nfa_full_match() {
         // (ab?)*|c
         let nfa = Automata::from_token('a')
-            .concat(&(Automata::from_token('b').optional()))
+            .concat(Automata::from_token('b').optional())
             .closure()
-            .or(&Automata::from_token('c'));
+            .or(Automata::from_token('c'));
         assert!(nfa.full_match("abaaaaaa"));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match(""));
