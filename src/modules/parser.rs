@@ -3,8 +3,7 @@ use super::state::Anchor;
 
 #[derive(Debug)]
 pub struct Error {
-    #[allow(dead_code)]
-    msg: String,
+    pub msg: String,
 }
 
 impl Error {
