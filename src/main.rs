@@ -74,10 +74,10 @@ mod tests {
     fn regex_search() {
         let testexpr = "(a|b)*cd?e+f*";
 
-        let parser = RegExp::new(testexpr);
-        assert!(parser.is_ok());
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
 
-        if let Ok(regex) = parser {
+        if let Ok(regex) = regexp {
             assert!(regex.full_match("ce"));
             assert!(regex.full_match("ace"));
             assert!(regex.full_match("aaabbbababce"));
@@ -100,10 +100,10 @@ mod tests {
     fn simple_regex() {
         let testexpr = "ba*";
 
-        let parser = RegExp::new(testexpr);
-        assert!(parser.is_ok());
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
 
-        if let Ok(regex) = parser {
+        if let Ok(regex) = regexp {
             assert_eq!(regex.greedy_search("baababaaa"), Some(String::from("baaa")));
             assert_eq!(regex.greedy_search("b"), Some(String::from("b")));
             assert_eq!(regex.greedy_search("xby"), Some(String::from("b")));
@@ -124,10 +124,10 @@ mod tests {
     fn regex_start_anchor() {
         let testexpr = "^abc+";
 
-        let parser = RegExp::new(testexpr);
-        assert!(parser.is_ok());
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
 
-        if let Ok(regex) = parser {
+        if let Ok(regex) = regexp {
             assert_eq!(regex.greedy_search("abc"), Some(String::from("abc")));
             assert_eq!(regex.greedy_search("abcd"), Some(String::from("abc")));
             assert_eq!(regex.greedy_search("abcdabccc"), Some(String::from("abc")));
@@ -140,10 +140,10 @@ mod tests {
     fn regex_end_anchor() {
         let testexpr = "xyz+$";
 
-        let parser = RegExp::new(testexpr);
-        assert!(parser.is_ok());
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
 
-        if let Ok(regex) = parser {
+        if let Ok(regex) = regexp {
             assert_eq!(regex.greedy_search("xyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("wxyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("xxxyzwxyz"), Some(String::from("xyz")));
@@ -156,10 +156,10 @@ mod tests {
     fn bad_anchor() {
         let testexpr = "$Dhelmise";
 
-        let parser = RegExp::new(testexpr);
-        assert!(parser.is_ok());
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
 
-        if let Ok(regex) = parser {
+        if let Ok(regex) = regexp {
             assert_eq!(None, regex.greedy_search("Dhelmise"));
         }
     }
