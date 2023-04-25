@@ -21,7 +21,7 @@ impl TrivialState {
 }
 
 impl State for TrivialState {
-    fn epsilon(&self, _: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>] {
+    fn epsilon(&self, _: &[Anchor]) -> &[Rc<RefCell<dyn State>>] {
         &self.dest[..]
     }
 

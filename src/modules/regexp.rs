@@ -89,6 +89,11 @@ mod tests {
         assert!(regexp.is_ok());
 
         if let Ok(regex) = regexp {
+            assert!(regex.full_match("abc"));
+            assert!(regex.full_match("abcccc"));
+            assert!(!regex.full_match("abcd"));
+            assert!(!regex.full_match("zabc"));
+
             assert_eq!(regex.greedy_search("abc"), Some(String::from("abc")));
             assert_eq!(regex.greedy_search("abcd"), Some(String::from("abc")));
             assert_eq!(regex.greedy_search("abcdabccc"), Some(String::from("abc")));
@@ -105,11 +110,37 @@ mod tests {
         assert!(regexp.is_ok());
 
         if let Ok(regex) = regexp {
+            assert!(regex.full_match("xyz"));
+            assert!(regex.full_match("xyzzzzz"));
+            assert!(!regex.full_match("wxyz"));
+            assert!(!regex.full_match("xyza"));
+
             assert_eq!(regex.greedy_search("xyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("wxyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("xxxyzwxyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("xyzzzz"), Some(String::from("xyzzzz")));
             assert_eq!(regex.greedy_search("xyzaa"), None);
+        }
+    }
+
+    #[test]
+    fn regex_anchors_with_empty_matcher() {
+        let testexpr = "^a*$";
+
+        let regexp = RegExp::new(testexpr);
+        assert!(regexp.is_ok());
+
+        if let Ok(regex) = regexp {
+            assert!(regex.full_match(""));
+            assert!(regex.full_match("a"));
+            assert!(!regex.full_match("b"));
+            assert!(!regex.full_match("ab"));
+
+
+            assert_eq!(regex.greedy_search(""), Some(String::from("")));
+            assert_eq!(regex.greedy_search("a"), Some(String::from("a")));
+            assert_eq!(regex.greedy_search("b"), Some(String::from("")));
+            assert_eq!(regex.greedy_search("ab"), Some(String::from("a")));
         }
     }
 

@@ -26,7 +26,7 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '^' => automata_stack.push(Automata::from_anchor(Anchor::Start)),
             '$' => automata_stack.push(Automata::from_anchor(Anchor::End)),
             '|' => {
-                let b = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
+                let b = automata_stack.pop().ok_or(Error::from(POP_ERR))?;
                 let a = automata_stack.pop().ok_or_else(|| Error::from(POP_ERR))?;
                 automata_stack.push(a.or(b));
             }

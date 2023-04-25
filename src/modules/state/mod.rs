@@ -15,7 +15,7 @@ use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
 pub trait State {
-    fn epsilon(&self, anchor: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>];
+    fn epsilon(&self, anchors: &[Anchor]) -> &[Rc<RefCell<dyn State>>];
 
     fn transition(&self, token: char) -> Option<Rc<RefCell<dyn State>>>;
 

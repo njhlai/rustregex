@@ -98,39 +98,48 @@ impl Automata {
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
-        let mut current_states = exhaust_epsilons(vec![self.start.clone()], &Some(Anchor::Start));
-
-        for c in expr.chars() {
-            current_states = exhaust_epsilons(
-                current_states
-                    .iter()
-                    .filter_map(|s| s.borrow().transition(c))
-                    .collect(),
-                &None,
-            );
+        if let Some(matched) = self.greedy_search_impl(expr, true) {
+            matched.len() == expr.len()
+        } else {
+            false
         }
-        current_states = exhaust_epsilons(current_states, &Some(Anchor::End));
-
-        current_states.contains(&self.get_end())
     }
 
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
+        self.greedy_search_impl(expr, false)
+    }
+
+    fn greedy_search_impl(&self, expr: &str, full_match: bool) -> Option<String> {
+        if expr.is_empty() {
+            let anchors = vec!(Anchor::Start, Anchor::WordBoundary, Anchor::End);
+            let states_reached = exhaust_epsilons(vec![self.start.clone()], &anchors);
+
+            return if states_reached.contains(&self.get_end()) {
+                Some(expr.into())
+            } else {
+                None
+            }
+        }
+
         let mut current_states = vec![];
-        let (mut start, mut end) = (0, 0);
+        let (mut start, mut end) = (0, -1);
 
         let mut expr_peekable = expr.chars().enumerate().peekable();
-        let mut anchor = Some(Anchor::Start);
-        while let Some((r, c)) = expr_peekable.next() {
-            current_states.push(exhaust_epsilons(vec![self.start.clone()], &anchor));
+        let mut anchors = vec![Anchor::Start, Anchor::WordBoundary];
 
-            anchor = if let Some((_, peek_c)) = expr_peekable.peek() {
+        while let Some((r, c)) = expr_peekable.next() {
+            if !full_match || anchors.contains(&Anchor::Start) {
+                current_states.push(exhaust_epsilons(vec![self.start.clone()], &anchors));
+            }
+
+            anchors = if let Some((_, peek_c)) = expr_peekable.peek() {
                 if c.is_alphanumeric() == peek_c.is_alphanumeric() {
-                    None
+                    vec![]
                 } else {
-                    Some(Anchor::WordBoundary)
+                    vec![Anchor::WordBoundary]
                 }
             } else {
-                Some(Anchor::End)
+                vec![Anchor::End, Anchor::WordBoundary]
             };
 
             let mut found = false;
@@ -140,19 +149,19 @@ impl Automata {
                         .iter()
                         .filter_map(|s| s.borrow().transition(c))
                         .collect(),
-                    &anchor,
+                    &anchors,
                 );
 
-                if !found && states.contains(&self.get_end()) && end - start < r - l + 1 {
-                    start = l;
-                    end = r + 1;
+                if !found && states.contains(&self.get_end()) && end - start < (r - l + 1) as i32 {
+                    start = l as i32;
+                    end = (r + 1) as i32;
                     found = true;
                 }
             }
         }
 
-        if end - start > 0 {
-            Some(String::from(&expr[start..end]))
+        if end >= start {
+            Some(String::from(&expr[(start as usize)..(end as usize)]))
         } else {
             None
         }
@@ -176,15 +185,15 @@ impl Debug for Automata {
     }
 }
 
-fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<StatePtr> {
+fn exhaust_epsilons(states: Vec<StatePtr>, anchors: &Vec<Anchor>) -> Vec<StatePtr> {
     fn traverse_epsilons(
         destinations: &mut Vec<StatePtr>,
         visited_states: &mut Vec<StatePtr>,
         state: &StatePtr,
-        anchor: &Option<Anchor>,
+        anchors: &Vec<Anchor>,
     ) {
         let state_locked = state.borrow();
-        let reachables = state_locked.epsilon(anchor);
+        let reachables = state_locked.epsilon(anchors);
 
         if reachables.is_empty() {
             destinations.push(state.clone());
@@ -196,7 +205,7 @@ fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<State
             }
 
             visited_states.push(candidate.clone());
-            traverse_epsilons(destinations, visited_states, candidate, anchor);
+            traverse_epsilons(destinations, visited_states, candidate, anchors);
         }
     }
 
@@ -205,7 +214,7 @@ fn exhaust_epsilons(states: Vec<StatePtr>, anchor: &Option<Anchor>) -> Vec<State
 
     states
         .iter()
-        .for_each(|s| traverse_epsilons(&mut destinations, &mut visited_states, s, anchor));
+        .for_each(|s| traverse_epsilons(&mut destinations, &mut visited_states, s, anchors));
 
     destinations
 }

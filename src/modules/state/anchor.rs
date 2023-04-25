@@ -1,6 +1,5 @@
 use std::any::Any;
 use std::cell::RefCell;
-use std::cmp::Ordering;
 use std::rc::Rc;
 use std::{ptr, slice};
 
@@ -13,16 +12,6 @@ pub enum Anchor {
     WordBoundary,
 }
 
-impl PartialOrd for Anchor {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match (self, other) {
-            (x, y) if x == y => Some(Ordering::Equal),
-            (Anchor::WordBoundary, _) => Some(Ordering::Greater),
-            (_, Anchor::WordBoundary) => Some(Ordering::Less),
-            _ => None,
-        }
-    }
-}
 
 pub struct AnchorState {
     anchor: Anchor,
@@ -36,12 +25,12 @@ impl AnchorState {
 }
 
 impl State for AnchorState {
-    fn epsilon(&self, anchor: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>] {
-        if let Some(anchor_type) = anchor {
-            if *anchor_type <= self.anchor { return slice::from_ref(&self.dest); }
-        } 
-
-        &([] as [Rc<RefCell<dyn State>>; 0])
+    fn epsilon(&self, anchors: &[Anchor]) -> &[Rc<RefCell<dyn State>>] {
+        if anchors.contains(&self.anchor) {
+            slice::from_ref(&self.dest)
+        } else {
+            &([] as [Rc<RefCell<dyn State>>; 0])
+        }
     }
 
     fn transition(&self, _: char) -> Option<Rc<RefCell<dyn State>>> {

@@ -17,7 +17,7 @@ impl TokenState {
 }
 
 impl State for TokenState {
-    fn epsilon(&self, _: &Option<Anchor>) -> &[Rc<RefCell<dyn State>>] {
+    fn epsilon(&self, _: &[Anchor]) -> &[Rc<RefCell<dyn State>>] {
         &([] as [Rc<RefCell<dyn State>>; 0])
     }
 
