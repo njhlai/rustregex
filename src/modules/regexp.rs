@@ -139,8 +139,8 @@ mod tests {
 
             assert_eq!(regex.greedy_search(""), Some(String::from("")));
             assert_eq!(regex.greedy_search("a"), Some(String::from("a")));
-            assert_eq!(regex.greedy_search("b"), Some(String::from("")));
-            assert_eq!(regex.greedy_search("ab"), Some(String::from("a")));
+            assert_eq!(regex.greedy_search("b"), None);
+            assert_eq!(regex.greedy_search("ab"), None);
         }
     }
 
