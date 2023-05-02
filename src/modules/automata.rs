@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
+use std::iter::Enumerate;
 use std::rc::Rc;
+use std::str::Chars;
 
 use super::state::{Anchor, AnchorState, LambdaState, State, TokenState, TrivialState};
 
@@ -113,32 +115,32 @@ impl Automata {
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end) = (0, -1);
 
-		for transition in transition_iter(expr) {
-			match transition {
-				TransitionItem::Char(c) => {
-					for states in current_states.iter_mut() {
-						*states = states
-							.iter()
-							.filter_map(|s| s.borrow().transition(c))
-							.collect();
-					}
-				},
-				TransitionItem::Epsilon((r, anchors)) => {
-					if !full_match || anchors.contains(&Anchor::Start) {
-						current_states.push(vec![self.start.clone()]);
-					}
+        for transition in transition_iter(expr) {
+            match transition {
+                TransitionItem::Char(c) => {
+                    for states in &mut current_states {
+                        *states = states
+                            .iter()
+                            .filter_map(|s| s.borrow().transition(c))
+                            .collect();
+                    }
+                }
+                TransitionItem::Epsilon((r, anchors)) => {
+                    if !full_match || anchors.contains(&Anchor::Start) {
+                        current_states.push(vec![self.start.clone()]);
+                    }
 
-					for (l, states) in current_states.iter_mut().enumerate() {
-						*states = exhaust_epsilons(states, &anchors);
+                    for (l, states) in current_states.iter_mut().enumerate() {
+                        *states = exhaust_epsilons(states, &anchors);
 
-						if end - start < (r - l) as i32 && states.contains(&self.get_end()) {
-							start = l as i32;
-							end = r as i32;
-						}
-					}
-				}
-			}
-		}
+                        if end - start < (r - l) as i32 && states.contains(&self.get_end()) {
+                            start = l as i32;
+                            end = r as i32;
+                        }
+                    }
+                }
+            }
+        }
 
         if end >= start {
             Some(String::from(&expr[(start as usize)..(end as usize)]))
@@ -201,58 +203,57 @@ fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
 
 fn get_anchors(prev: Option<(usize, char)>, next: Option<(usize, char)>) -> Vec<Anchor> {
     let mut anchors = vec![];
-    match (prev, next) {
-        (Some((_, p)), Some((_, n))) => {
-            if p.is_alphanumeric() != n.is_alphanumeric() {
-                anchors.push(Anchor::WordBoundary);
-            }
+
+    if let (Some((_, p)), Some((_, n))) = (prev, next) {
+        if p.is_alphanumeric() != n.is_alphanumeric() {
+            anchors.push(Anchor::WordBoundary);
         }
-        _ => {
-            if prev.is_none() {
-                anchors.push(Anchor::Start);
-            }
-            if next.is_none() {
-                anchors.push(Anchor::End);
-            }
-            anchors.push(Anchor::WordBoundary)
+    } else {
+        if prev.is_none() {
+            anchors.push(Anchor::Start);
         }
-    };
+        if next.is_none() {
+            anchors.push(Anchor::End);
+        }
+        anchors.push(Anchor::WordBoundary);
+    }
+
     anchors
 }
 
 enum TransitionItem {
-	Char(char),
-	Epsilon((usize, Vec<Anchor>))
+    Char(char),
+    Epsilon((usize, Vec<Anchor>)),
 }
 
 struct TransitionIter<'a> {
-	it: std::iter::Enumerate<std::str::Chars<'a>>,
-	current: Option<(usize, char)>,
-	char_next: bool
+    it: Enumerate<Chars<'a>>,
+    current: Option<(usize, char)>,
+    char_next: bool,
 }
 
 impl<'a> Iterator for TransitionIter<'a> {
-	type Item = TransitionItem;
+    type Item = TransitionItem;
 
-	fn next(&mut self) -> Option<Self::Item> {
-		let return_char = self.char_next;
-		self.char_next = !self.char_next;
+    fn next(&mut self) -> Option<Self::Item> {
+        let return_char = self.char_next;
+        self.char_next = !self.char_next;
 
-		if return_char {
-			self.current.map(|c| TransitionItem::Char(c.1))
-		} else {
-			let next = self.it.next();
-			let pos = self.current.map(|c| c.0 + 1).unwrap_or(0);
-			let eps = (pos, get_anchors(self.current, next));
-			self.current = next;
+        if return_char {
+            self.current.map(|(_, c)| TransitionItem::Char(c))
+        } else {
+            let next = self.it.next();
+            let pos = self.current.map_or(0, |(i, _)| i + 1);
+            let eps = (pos, get_anchors(self.current, next));
+            self.current = next;
 
-			Some(TransitionItem::Epsilon(eps))
-		}
-	}
+            Some(TransitionItem::Epsilon(eps))
+        }
+    }
 }
 
 fn transition_iter(expr: &str) -> TransitionIter {
-	return TransitionIter{ it:expr.chars().enumerate(), current: None, char_next:false};
+    TransitionIter { it: expr.chars().enumerate(), current: None, char_next: false }
 }
 
 #[cfg(test)]
@@ -350,9 +351,4 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
     }
-
-    // #[test]
-    // fn nfa_greedy_search() {
-    //     let nfa
-    // }
 }

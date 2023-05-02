@@ -12,7 +12,6 @@ pub enum Anchor {
     WordBoundary,
 }
 
-
 pub struct AnchorState {
     anchor: Anchor,
     dest: Rc<RefCell<dyn State>>,

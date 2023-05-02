@@ -53,11 +53,11 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
     }
 
     if automata_stack.len() > 1 {
-        Err(Error::from("Interal error: final stack is too large"))
+        Err(Error::from("Internal error: final stack is too large"))
     } else {
         automata_stack
             .pop()
-            .ok_or_else(|| Error::from("Interal error: final stack is empty"))
+            .ok_or_else(|| Error::from("Internal error: final stack is empty"))
     }
 }
 
