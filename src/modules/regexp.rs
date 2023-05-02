@@ -19,6 +19,10 @@ impl RegExp {
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
         self.automata.greedy_search(expr)
     }
+
+    pub fn search(&self, expr: &str) -> Vec<String> {
+        self.automata.search(expr)
+    }
 }
 
 #[cfg(test)]

@@ -148,6 +148,52 @@ impl Automata {
         }
     }
 
+    pub fn search(&self, expr: &str) -> Vec<String> {
+        let mut results = vec![];
+        let mut current_states: Vec<Vec<StatePtr>> = vec![];
+        let (mut start, mut end) = (0, -1);
+
+        for transition in transition_iter(expr) {
+            match transition {
+                TransitionItem::Char(c) => {
+                    for states in &mut current_states {
+                        *states = states
+                            .iter()
+                            .filter_map(|s| s.borrow().transition(c))
+                            .collect();
+                    }
+                }
+                TransitionItem::Epsilon((r, anchors)) => {
+                    current_states.push(vec![self.start.clone()]);
+                    let mut len = -1;
+
+                    for (l, states) in current_states.iter_mut().enumerate() {
+                        *states = exhaust_epsilons(states, &anchors);
+
+                        if len < (r - l) as i32 && states.contains(&self.get_end()) {
+                            if start < l as i32 {
+                                if end >= start {
+                                    results.push(String::from(&expr[(start as usize)..(end as usize)]));
+                                }
+
+                                start = l as i32;
+                            }
+
+                            len = (r - l) as i32;
+                            end = r as i32;
+                        }
+                    }
+                }
+            }
+        }
+
+        if end >= start {
+            results.push(String::from(&expr[(start as usize)..(end as usize)]));
+        }
+
+        results
+    }
+
     fn get_end(&self) -> StatePtr {
         // the `clone' function only clones the reference-counted pointer, so this should be ok...
         self.end.clone() as StatePtr

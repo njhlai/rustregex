@@ -13,9 +13,16 @@ fn main() {
 
         match RegExp::new(&regexp_input) {
             Ok(regexp) => {
-                let s = get_user_input("match against: ");
-                println!("full match:    {}", regexp.full_match(&s));
-                println!("greedy search: {:?}", regexp.greedy_search(&s));
+                let s = get_user_input("match against:      ");
+                println!("full match:         {}", regexp.full_match(&s));
+                println!("greedy search:      {:?}", regexp.greedy_search(&s));
+
+                let res = regexp.search(&s);
+                if res.is_empty() {
+                    println!("search:             yielded no results");
+                } else {
+                    println!("search:             yielded {} results -> \"{}\"", res.len(), res.join("\",\""));
+                }
             }
             Err(err) => println!("Error: {}", err.msg),
         }
