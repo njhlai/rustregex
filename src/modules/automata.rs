@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
-use std::iter::Enumerate;
 use std::rc::Rc;
 use std::str::Chars;
 
@@ -201,15 +200,15 @@ fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     destinations
 }
 
-fn get_anchors(prev: Option<(usize, char)>, next: Option<(usize, char)>) -> Vec<Anchor> {
+fn get_anchors(current: Option<char>, next: Option<char>) -> Vec<Anchor> {
     let mut anchors = vec![];
 
-    if let (Some((_, p)), Some((_, n))) = (prev, next) {
+    if let (Some(p), Some(n)) = (current, next) {
         if p.is_alphanumeric() != n.is_alphanumeric() {
             anchors.push(Anchor::WordBoundary);
         }
     } else {
-        if prev.is_none() {
+        if current.is_none() {
             anchors.push(Anchor::Start);
         }
         if next.is_none() {
@@ -227,24 +226,23 @@ enum TransitionItem {
 }
 
 struct TransitionIter<'a> {
-    it: Enumerate<Chars<'a>>,
-    current: Option<(usize, char)>,
-    char_next: bool,
+    it: Chars<'a>,
+    current: Option<char>,
+    index: usize,
 }
 
 impl<'a> Iterator for TransitionIter<'a> {
     type Item = TransitionItem;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let return_char = self.char_next;
-        self.char_next = !self.char_next;
+        let return_char = self.index % 2 == 1;
+        self.index += 1;
 
         if return_char {
-            self.current.map(|(_, c)| TransitionItem::Char(c))
+            self.current.map(TransitionItem::Char)
         } else {
             let next = self.it.next();
-            let pos = self.current.map_or(0, |(i, _)| i + 1);
-            let eps = (pos, get_anchors(self.current, next));
+            let eps = (self.index / 2, get_anchors(self.current, next));
             self.current = next;
 
             Some(TransitionItem::Epsilon(eps))
@@ -253,7 +251,7 @@ impl<'a> Iterator for TransitionIter<'a> {
 }
 
 fn transition_iter(expr: &str) -> TransitionIter {
-    TransitionIter { it: expr.chars().enumerate(), current: None, char_next: false }
+    TransitionIter { it: expr.chars(), current: None, index: 0 }
 }
 
 #[cfg(test)]
