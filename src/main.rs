@@ -14,11 +14,8 @@ fn main() {
         match RegExp::new(&regexp_input) {
             Ok(regexp) => {
                 let s = get_user_input("match against: ");
-                println!("full match:     {}", regexp.full_match(&s));
-                println!(
-                    "greedy search: \"{}\"",
-                    regexp.greedy_search(&s).unwrap_or_default()
-                );
+                println!("full match:    {}", regexp.full_match(&s));
+                println!("greedy search: {:?}", regexp.greedy_search(&s));
             }
             Err(err) => println!("Error: {}", err.msg),
         }

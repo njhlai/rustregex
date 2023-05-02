@@ -110,55 +110,35 @@ impl Automata {
     }
 
     fn greedy_search_impl(&self, expr: &str, full_match: bool) -> Option<String> {
-        if expr.is_empty() {
-            let anchors = vec!(Anchor::Start, Anchor::WordBoundary, Anchor::End);
-            let states_reached = exhaust_epsilons(vec![self.start.clone()], &anchors);
-
-            return if states_reached.contains(&self.get_end()) {
-                Some(expr.into())
-            } else {
-                None
-            }
-        }
-
-        let mut current_states = vec![];
+        let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end) = (0, -1);
 
-        let mut expr_peekable = expr.chars().enumerate().peekable();
-        let mut anchors = vec![Anchor::Start, Anchor::WordBoundary];
+		for transition in transition_iter(expr) {
+			match transition {
+				TransitionItem::Char(c) => {
+					for states in current_states.iter_mut() {
+						*states = states
+							.iter()
+							.filter_map(|s| s.borrow().transition(c))
+							.collect();
+					}
+				},
+				TransitionItem::Epsilon((r, anchors)) => {
+					if !full_match || anchors.contains(&Anchor::Start) {
+						current_states.push(vec![self.start.clone()]);
+					}
 
-        while let Some((r, c)) = expr_peekable.next() {
-            if !full_match || anchors.contains(&Anchor::Start) {
-                current_states.push(exhaust_epsilons(vec![self.start.clone()], &anchors));
-            }
+					for (l, states) in current_states.iter_mut().enumerate() {
+						*states = exhaust_epsilons(states, &anchors);
 
-            anchors = if let Some((_, peek_c)) = expr_peekable.peek() {
-                if c.is_alphanumeric() == peek_c.is_alphanumeric() {
-                    vec![]
-                } else {
-                    vec![Anchor::WordBoundary]
-                }
-            } else {
-                vec![Anchor::End, Anchor::WordBoundary]
-            };
-
-            let mut found = false;
-            for (l, states) in current_states.iter_mut().enumerate() {
-                *states = exhaust_epsilons(
-                    states
-                        .iter()
-                        .filter_map(|s| s.borrow().transition(c))
-                        .collect(),
-                    &anchors,
-                );
-
-                if !found && states.contains(&self.get_end()) && end - start < (r - l + 1) as i32 {
-                    start = l as i32;
-                    end = (r + 1) as i32;
-                    found = true;
-                }
-            }
-        }
+						if end - start < (r - l) as i32 && states.contains(&self.get_end()) {
+							start = l as i32;
+							end = r as i32;
+						}
+					}
+				}
+			}
+		}
 
         if end >= start {
             Some(String::from(&expr[(start as usize)..(end as usize)]))
@@ -185,12 +165,12 @@ impl Debug for Automata {
     }
 }
 
-fn exhaust_epsilons(states: Vec<StatePtr>, anchors: &Vec<Anchor>) -> Vec<StatePtr> {
+fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     fn traverse_epsilons(
         destinations: &mut Vec<StatePtr>,
         visited_states: &mut Vec<StatePtr>,
         state: &StatePtr,
-        anchors: &Vec<Anchor>,
+        anchors: &[Anchor],
     ) {
         let state_locked = state.borrow();
         let reachables = state_locked.epsilon(anchors);
@@ -219,6 +199,62 @@ fn exhaust_epsilons(states: Vec<StatePtr>, anchors: &Vec<Anchor>) -> Vec<StatePt
     destinations
 }
 
+fn get_anchors(prev: Option<(usize, char)>, next: Option<(usize, char)>) -> Vec<Anchor> {
+    let mut anchors = vec![];
+    match (prev, next) {
+        (Some((_, p)), Some((_, n))) => {
+            if p.is_alphanumeric() != n.is_alphanumeric() {
+                anchors.push(Anchor::WordBoundary);
+            }
+        }
+        _ => {
+            if prev.is_none() {
+                anchors.push(Anchor::Start);
+            }
+            if next.is_none() {
+                anchors.push(Anchor::End);
+            }
+            anchors.push(Anchor::WordBoundary)
+        }
+    };
+    anchors
+}
+
+enum TransitionItem {
+	Char(char),
+	Epsilon((usize, Vec<Anchor>))
+}
+
+struct TransitionIter<'a> {
+	it: std::iter::Enumerate<std::str::Chars<'a>>,
+	current: Option<(usize, char)>,
+	char_next: bool
+}
+
+impl<'a> Iterator for TransitionIter<'a> {
+	type Item = TransitionItem;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let return_char = self.char_next;
+		self.char_next = !self.char_next;
+
+		if return_char {
+			self.current.map(|c| TransitionItem::Char(c.1))
+		} else {
+			let next = self.it.next();
+			let pos = self.current.map(|c| c.0 + 1).unwrap_or(0);
+			let eps = (pos, get_anchors(self.current, next));
+			self.current = next;
+
+			Some(TransitionItem::Epsilon(eps))
+		}
+	}
+}
+
+fn transition_iter(expr: &str) -> TransitionIter {
+	return TransitionIter{ it:expr.chars().enumerate(), current: None, char_next:false};
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -231,6 +267,12 @@ mod tests {
         assert!(!nfa.full_match("d"));
         assert!(!nfa.full_match(""));
         assert!(!nfa.full_match("monty python"));
+
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("c"), None);
+        assert_eq!(nfa.greedy_search("dc"), None);
+        assert_eq!(nfa.greedy_search("cd"), Some(String::from("cd")));
+        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("cd")));
     }
 
     #[test]
@@ -241,6 +283,11 @@ mod tests {
         assert!(!nfa.full_match("cd"));
         assert!(!nfa.full_match(""));
         assert!(!nfa.full_match("monty python"));
+
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("cd"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("dc"), Some(String::from("d")));
+        assert_eq!(nfa.greedy_search("ade"), Some(String::from("d")));
     }
 
     #[test]
@@ -250,6 +297,12 @@ mod tests {
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
         assert!(!nfa.full_match("b"));
+
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
     }
 
     #[test]
@@ -259,6 +312,12 @@ mod tests {
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
         assert!(!nfa.full_match("b"));
+
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("b"), None);
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
     }
 
     #[test]
@@ -269,6 +328,12 @@ mod tests {
         assert!(!nfa.full_match("b"));
         assert!(!nfa.full_match("ab"));
         assert!(!nfa.full_match("ba"));
+
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
     }
 
     #[test]
@@ -285,4 +350,9 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
     }
+
+    // #[test]
+    // fn nfa_greedy_search() {
+    //     let nfa
+    // }
 }
