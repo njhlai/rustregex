@@ -21,7 +21,7 @@ impl RegExp {
     }
 
     pub fn search(&self, expr: &str) -> Vec<String> {
-        self.automata.search(expr)
+        self.automata.search(expr, false)
     }
 }
 

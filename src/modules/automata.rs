@@ -99,7 +99,7 @@ impl Automata {
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
-        if let Some(matched) = self.greedy_search_impl(expr, true) {
+        if let Some(matched) = self.greedy_search(expr) {
             matched.len() == expr.len()
         } else {
             false
@@ -107,48 +107,10 @@ impl Automata {
     }
 
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
-        self.greedy_search_impl(expr, false)
+        self.search(expr, true).first().cloned()
     }
 
-    fn greedy_search_impl(&self, expr: &str, full_match: bool) -> Option<String> {
-        let mut current_states: Vec<Vec<StatePtr>> = vec![];
-        let (mut start, mut end) = (0, -1);
-
-        for transition in transition_iter(expr) {
-            match transition {
-                TransitionItem::Char(c) => {
-                    for states in &mut current_states {
-                        *states = states
-                            .iter()
-                            .filter_map(|s| s.borrow().transition(c))
-                            .collect();
-                    }
-                }
-                TransitionItem::Epsilon((r, anchors)) => {
-                    if !full_match || anchors.contains(&Anchor::Start) {
-                        current_states.push(vec![self.start.clone()]);
-                    }
-
-                    for (l, states) in current_states.iter_mut().enumerate() {
-                        *states = exhaust_epsilons(states, &anchors);
-
-                        if end - start < (r - l) as i32 && states.contains(&self.get_end()) {
-                            start = l as i32;
-                            end = r as i32;
-                        }
-                    }
-                }
-            }
-        }
-
-        if end >= start {
-            Some(String::from(&expr[(start as usize)..(end as usize)]))
-        } else {
-            None
-        }
-    }
-
-    pub fn search(&self, expr: &str) -> Vec<String> {
+    pub fn search(&self, expr: &str, greedy: bool) -> Vec<String> {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end) = (0, -1);
@@ -165,13 +127,15 @@ impl Automata {
                 }
                 TransitionItem::Epsilon((r, anchors)) => {
                     current_states.push(vec![self.start.clone()]);
-                    let mut len = -1;
+                    let mut len = if greedy { end - start } else { -1 };
 
                     for (l, states) in current_states.iter_mut().enumerate() {
                         *states = exhaust_epsilons(states, &anchors);
 
                         if len < (r - l) as i32 && states.contains(&self.get_end()) {
-                            if start < l as i32 {
+                            if greedy {
+                                start = l as i32;
+                            } else if start < l as i32 {
                                 if end >= start {
                                     results.push(String::from(&expr[(start as usize)..(end as usize)]));
                                 }
