@@ -200,31 +200,6 @@ fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     destinations
 }
 
-fn get_anchors(current: Option<char>, next: Option<char>) -> Vec<Anchor> {
-    let mut anchors = vec![];
-
-    if let (Some(p), Some(n)) = (current, next) {
-        if p.is_alphanumeric() != n.is_alphanumeric() {
-            anchors.push(Anchor::WordBoundary);
-        }
-    } else {
-        if current.is_none() {
-            anchors.push(Anchor::Start);
-        }
-        if next.is_none() {
-            anchors.push(Anchor::End);
-        }
-        anchors.push(Anchor::WordBoundary);
-    }
-
-    anchors
-}
-
-enum TransitionItem {
-    Char(char),
-    Epsilon((usize, Vec<Anchor>)),
-}
-
 struct TransitionIter<'a> {
     it: Chars<'a>,
     current: Option<char>,
@@ -242,16 +217,43 @@ impl<'a> Iterator for TransitionIter<'a> {
             self.current.map(TransitionItem::Char)
         } else {
             let next = self.it.next();
-            let eps = (self.index / 2, get_anchors(self.current, next));
+            let eps = TransitionItem::get_anchors(self.index / 2, self.current, next);
             self.current = next;
 
-            Some(TransitionItem::Epsilon(eps))
+            Some(eps)
         }
     }
 }
 
 fn transition_iter(expr: &str) -> TransitionIter {
     TransitionIter { it: expr.chars(), current: None, index: 0 }
+}
+
+enum TransitionItem {
+    Char(char),
+    Epsilon((usize, Vec<Anchor>)),
+}
+
+impl TransitionItem {
+    fn get_anchors(index: usize, current: Option<char>, next: Option<char>) -> Self {
+        let mut anchors = vec![];
+
+        if let (Some(p), Some(n)) = (current, next) {
+            if p.is_alphanumeric() != n.is_alphanumeric() {
+                anchors.push(Anchor::WordBoundary);
+            }
+        } else {
+            if current.is_none() {
+                anchors.push(Anchor::Start);
+            }
+            if next.is_none() {
+                anchors.push(Anchor::End);
+            }
+            anchors.push(Anchor::WordBoundary);
+        }
+
+        TransitionItem::Epsilon((index, anchors))
+    }
 }
 
 #[cfg(test)]
