@@ -273,78 +273,161 @@ mod tests {
     #[test]
     fn nfa_concat() {
         let nfa = Automata::from_token('c').concat(Automata::from_token('d'));
-        assert!(nfa.full_match("cd"));
+
+        assert!(!nfa.full_match(""));
         assert!(!nfa.full_match("c"));
         assert!(!nfa.full_match("d"));
-        assert!(!nfa.full_match(""));
+        assert!(nfa.full_match("cd"));
+        assert!(!nfa.full_match("dc"));
+        assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
         assert_eq!(nfa.greedy_search(""), None);
         assert_eq!(nfa.greedy_search("c"), None);
-        assert_eq!(nfa.greedy_search("dc"), None);
+        assert_eq!(nfa.greedy_search("d"), None);
         assert_eq!(nfa.greedy_search("cd"), Some(String::from("cd")));
+        assert_eq!(nfa.greedy_search("dc"), None);
         assert_eq!(nfa.greedy_search("abcde"), Some(String::from("cd")));
+        assert_eq!(nfa.greedy_search("monty python"), None);
+
+        assert_eq!(nfa.search("", false), Vec::<String>::new());
+        assert_eq!(nfa.search("c", false), Vec::<String>::new());
+        assert_eq!(nfa.search("d", false), Vec::<String>::new());
+        assert_eq!(nfa.search("cd", false), vec!["cd"]);
+        assert_eq!(nfa.search("dc", false), Vec::<String>::new());
+        assert_eq!(nfa.search("abcde", false), vec!["cd"]);
+        assert_eq!(nfa.search("monty python", false), Vec::<String>::new());
     }
 
     #[test]
     fn nfa_union() {
         let nfa = Automata::from_token('c').or(Automata::from_token('d'));
+
+        assert!(!nfa.full_match(""));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match("d"));
         assert!(!nfa.full_match("cd"));
-        assert!(!nfa.full_match(""));
+        assert!(!nfa.full_match("dc"));
+        assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
         assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("d"), Some(String::from("d")));
         assert_eq!(nfa.greedy_search("cd"), Some(String::from("c")));
         assert_eq!(nfa.greedy_search("dc"), Some(String::from("d")));
-        assert_eq!(nfa.greedy_search("ade"), Some(String::from("d")));
+        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("monty python"), None);
+
+        assert_eq!(nfa.search("", false), Vec::<String>::new());
+        assert_eq!(nfa.search("c", false), vec!["c"]);
+        assert_eq!(nfa.search("d", false), vec!["d"]);
+        assert_eq!(nfa.search("cd", false), vec!["c", "d"]);
+        assert_eq!(nfa.search("dc", false), vec!["d", "c"]);
+        assert_eq!(nfa.search("abcde", false), vec!["c", "d"]);
+        assert_eq!(nfa.search("monty python", false), Vec::<String>::new());
     }
 
     #[test]
     fn nfa_closure() {
         let nfa = Automata::from_token('a').closure();
+
         assert!(nfa.full_match(""));
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
         assert!(!nfa.full_match("b"));
+        assert!(!nfa.full_match("ab"));
+        assert!(!nfa.full_match("ba"));
+        assert!(!nfa.full_match("basic"));
+        assert!(!nfa.full_match("this is a string"));
 
         assert_eq!(nfa.greedy_search(""), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
         assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+
+        assert_eq!(nfa.search("", false), vec![""]);
+        assert_eq!(nfa.search("a", false), vec!["a"]);
+        assert_eq!(nfa.search("aaa", false), vec!["aaa"]);
+        assert_eq!(nfa.search("b", false), vec!["", ""]);
+        assert_eq!(nfa.search("ab", false), vec!["a", ""]);
+        assert_eq!(nfa.search("ba", false), vec!["", "a"]);
+        assert_eq!(nfa.search("basic", false), vec!["", "a", "", "", ""]);
+        assert_eq!(
+            nfa.search("this is a string", false),
+            vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
+        );
     }
 
     #[test]
     fn nfa_plus() {
         let nfa = Automata::from_token('a').plus();
+
         assert!(!nfa.full_match(""));
         assert!(nfa.full_match("a"));
         assert!(nfa.full_match("aaa"));
         assert!(!nfa.full_match("b"));
+        assert!(!nfa.full_match("ab"));
+        assert!(!nfa.full_match("ba"));
+        assert!(!nfa.full_match("basic"));
+        assert!(!nfa.full_match("this is a string"));
 
         assert_eq!(nfa.greedy_search(""), None);
-        assert_eq!(nfa.greedy_search("b"), None);
         assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(nfa.greedy_search("b"), None);
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+
+        assert_eq!(nfa.search("", false), Vec::<String>::new());
+        assert_eq!(nfa.search("a", false), vec!["a"]);
+        assert_eq!(nfa.search("aaa", false), vec!["aaa"]);
+        assert_eq!(nfa.search("b", false), Vec::<String>::new());
+        assert_eq!(nfa.search("ab", false), vec!["a"]);
+        assert_eq!(nfa.search("ba", false), vec!["a"]);
+        assert_eq!(nfa.search("basic", false), vec!["a"]);
+        assert_eq!(nfa.search("this is a string", false), vec!["a"]);
     }
 
     #[test]
     fn nfa_optional() {
         let nfa = Automata::from_token('a').optional();
+
         assert!(nfa.full_match(""));
         assert!(nfa.full_match("a"));
+        assert!(!nfa.full_match("aaa"));
         assert!(!nfa.full_match("b"));
         assert!(!nfa.full_match("ab"));
         assert!(!nfa.full_match("ba"));
+        assert!(!nfa.full_match("basic"));
+        assert!(!nfa.full_match("this is a string"));
 
         assert_eq!(nfa.greedy_search(""), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
         assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+
+        assert_eq!(nfa.search("", false), vec![""]);
+        assert_eq!(nfa.search("a", false), vec!["a"]);
+        assert_eq!(nfa.search("aaa", false), vec!["a", "a", "a"]);
+        assert_eq!(nfa.search("b", false), vec!["", ""]);
+        assert_eq!(nfa.search("ab", false), vec!["a", ""]);
+        assert_eq!(nfa.search("ba", false), vec!["", "a"]);
+        assert_eq!(nfa.search("basic", false), vec!["", "a", "", "", ""]);
+        assert_eq!(
+            nfa.search("this is a string", false),
+            vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
+        );
     }
 
     #[test]
