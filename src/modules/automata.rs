@@ -431,17 +431,32 @@ mod tests {
     }
 
     #[test]
-    fn nfa_full_match() {
+    fn nfa_realistic() {
         // (ab?)*|c
         let nfa = Automata::from_token('a')
             .concat(Automata::from_token('b').optional())
             .closure()
             .or(Automata::from_token('c'));
+
         assert!(nfa.full_match("abaaaaaa"));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match(""));
         assert!(!nfa.full_match("bb"));
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
+
+        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
+        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("bb"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("aaaaaaac"), Some(String::from("aaaaaaa")));
+        assert_eq!(nfa.greedy_search("cc"), Some(String::from("c")));
+
+        assert_eq!(nfa.search("abaaaaaa", false), vec!["abaaaaaa"]);
+        assert_eq!(nfa.search("c", false), vec!["c"]);
+        assert_eq!(nfa.search("", false), vec![""]);
+        assert_eq!(nfa.search("bb", false), vec!["", "", ""]);
+        assert_eq!(nfa.search("aaaaaaac", false), vec!["aaaaaaa", "c"]);
+        assert_eq!(nfa.search("cc", false), vec!["c", "c"]);
     }
 }
