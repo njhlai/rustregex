@@ -1,8 +1,9 @@
 use std::cell::RefCell;
-use std::fmt::{Debug, Formatter, Result};
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::rc::Rc;
 use std::str::Chars;
 
+use super::parser::Error;
 use super::state::{Anchor, AnchorState, LambdaState, State, TokenState, TrivialState};
 
 type StatePtr = Rc<RefCell<dyn State>>;
@@ -99,20 +100,28 @@ impl Automata {
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
-        if let Some(matched) = self.greedy_search(expr) {
-            matched.len() == expr.len()
-        } else {
-            false
+        match self.greedy_search(expr) {
+            Ok(result) => {
+                if let Some(matched) = result {
+                    matched.len() == expr.len()
+                } else {
+                    false
+                }
+            }
+            Err(error) => {
+                println!("Warning: {error:#?}");
+                false
+            }
         }
     }
 
-    pub fn greedy_search(&self, expr: &str) -> Option<String> {
+    pub fn greedy_search(&self, expr: &str) -> Result<Option<String>, Error> {
         let mut search_results = self.search(expr, true);
 
         if search_results.len() > 1 {
-            None
+            Err(Error::from("too many results returned for greedy search"))
         } else {
-            search_results.pop()
+            Ok(search_results.pop())
         }
     }
 
@@ -183,7 +192,7 @@ impl Automata {
 }
 
 impl Debug for Automata {
-    fn fmt(&self, f: &mut Formatter) -> Result {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
         f.debug_struct("NFA").field("start", &self.start).finish()
     }
 }
@@ -294,13 +303,13 @@ mod tests {
         assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
-        assert_eq!(nfa.greedy_search(""), None);
-        assert_eq!(nfa.greedy_search("c"), None);
-        assert_eq!(nfa.greedy_search("d"), None);
-        assert_eq!(nfa.greedy_search("cd"), Some(String::from("cd")));
-        assert_eq!(nfa.greedy_search("dc"), None);
-        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("cd")));
-        assert_eq!(nfa.greedy_search("monty python"), None);
+        assert_eq!(nfa.greedy_search(""), Ok(None));
+        assert_eq!(nfa.greedy_search("c"), Ok(None));
+        assert_eq!(nfa.greedy_search("d"), Ok(None));
+        assert_eq!(nfa.greedy_search("cd"), Ok(Some(String::from("cd"))));
+        assert_eq!(nfa.greedy_search("dc"), Ok(None));
+        assert_eq!(nfa.greedy_search("abcde"), Ok(Some(String::from("cd"))));
+        assert_eq!(nfa.greedy_search("monty python"), Ok(None));
 
         assert_eq!(nfa.search("", false), Vec::<String>::new());
         assert_eq!(nfa.search("c", false), Vec::<String>::new());
@@ -323,13 +332,13 @@ mod tests {
         assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
-        assert_eq!(nfa.greedy_search(""), None);
-        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
-        assert_eq!(nfa.greedy_search("d"), Some(String::from("d")));
-        assert_eq!(nfa.greedy_search("cd"), Some(String::from("c")));
-        assert_eq!(nfa.greedy_search("dc"), Some(String::from("d")));
-        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("c")));
-        assert_eq!(nfa.greedy_search("monty python"), None);
+        assert_eq!(nfa.greedy_search(""), Ok(None));
+        assert_eq!(nfa.greedy_search("c"), Ok(Some(String::from("c"))));
+        assert_eq!(nfa.greedy_search("d"), Ok(Some(String::from("d"))));
+        assert_eq!(nfa.greedy_search("cd"), Ok(Some(String::from("c"))));
+        assert_eq!(nfa.greedy_search("dc"), Ok(Some(String::from("d"))));
+        assert_eq!(nfa.greedy_search("abcde"), Ok(Some(String::from("c"))));
+        assert_eq!(nfa.greedy_search("monty python"), Ok(None));
 
         assert_eq!(nfa.search("", false), Vec::<String>::new());
         assert_eq!(nfa.search("c", false), vec!["c"]);
@@ -353,14 +362,14 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
-        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("aaa"))));
+        assert_eq!(nfa.greedy_search("b"), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
 
         assert_eq!(nfa.search("", false), vec![""]);
         assert_eq!(nfa.search("a", false), vec!["a"]);
@@ -388,14 +397,14 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), None);
-        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
-        assert_eq!(nfa.greedy_search("b"), None);
-        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search(""), Ok(None));
+        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("aaa"))));
+        assert_eq!(nfa.greedy_search("b"), Ok(None));
+        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
 
         assert_eq!(nfa.search("", false), Vec::<String>::new());
         assert_eq!(nfa.search("a", false), vec!["a"]);
@@ -420,14 +429,14 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("b"), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
 
         assert_eq!(nfa.search("", false), vec![""]);
         assert_eq!(nfa.search("a", false), vec!["a"]);
@@ -457,12 +466,12 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
 
-        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
-        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
-        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("bb"), Some(String::from("")));
-        assert_eq!(nfa.greedy_search("aaaaaaac"), Some(String::from("aaaaaaa")));
-        assert_eq!(nfa.greedy_search("cc"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("abaaaaaa"), Ok(Some(String::from("abaaaaaa"))));
+        assert_eq!(nfa.greedy_search("c"), Ok(Some(String::from("c"))));
+        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("bb"), Ok(Some(String::from(""))));
+        assert_eq!(nfa.greedy_search("aaaaaaac"), Ok(Some(String::from("aaaaaaa"))));
+        assert_eq!(nfa.greedy_search("cc"), Ok(Some(String::from("c"))));
 
         assert_eq!(nfa.search("abaaaaaa", false), vec!["abaaaaaa"]);
         assert_eq!(nfa.search("c", false), vec!["c"]);

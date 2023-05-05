@@ -24,7 +24,7 @@ fn main() {
                     println!("search:             yielded {} results -> \"{}\"", res.len(), res.join("\",\""));
                 }
             }
-            Err(err) => println!("Error: {}", err.msg),
+            Err(err) => println!("{err:#?}"),
         }
         println!(); // empty line
     }

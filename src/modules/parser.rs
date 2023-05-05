@@ -1,16 +1,24 @@
+use std::fmt::{Debug, Formatter, Result as FmtResult};
+
 use super::automata::Automata;
 use super::state::Anchor;
 
-#[derive(Debug)]
+#[derive(PartialEq)]
 pub struct Error {
-    pub msg: String,
+    msg: String,
 }
 
 impl Error {
     pub fn from(msg: &str) -> Error {
-        Error {
-            msg: String::from(msg),
-        }
+        Error { msg: String::from(msg) }
+    }
+}
+
+impl Debug for Error {
+    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+        f.debug_struct("RegexError")
+            .field("Internal Error", &self.msg)
+            .finish()
     }
 }
 
@@ -53,11 +61,11 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
     }
 
     if automata_stack.len() > 1 {
-        Err(Error::from("Internal error: final stack is too large"))
+        Err(Error::from("final stack is too large"))
     } else {
         automata_stack
             .pop()
-            .ok_or_else(|| Error::from("Internal error: final stack is empty"))
+            .ok_or_else(|| Error::from("final stack is empty"))
     }
 }
 
@@ -106,9 +114,7 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
 
 fn add_concat_char(expr: &str) -> Result<String, Error> {
     if let Some(pos) = expr.find(CONCAT_CHAR) {
-        return Err(Error {
-            msg: format!("Illegal character at index {pos}"),
-        });
+        return Err(Error::from(format!("Illegal character at index {pos}").as_str()));
     }
 
     let mut result = String::new();
