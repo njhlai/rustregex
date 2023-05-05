@@ -107,7 +107,13 @@ impl Automata {
     }
 
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
-        self.search(expr, true).first().cloned()
+        let mut search_results = self.search(expr, true);
+
+        if search_results.len() > 1 {
+            None
+        } else {
+            search_results.pop()
+        }
     }
 
     pub fn search(&self, expr: &str, greedy: bool) -> Vec<String> {
