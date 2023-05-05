@@ -1,5 +1,6 @@
 use super::automata::Automata;
-use super::parser::{parse, Error};
+use super::error::Error;
+use super::parser;
 
 pub struct RegExp {
     automata: Automata,
@@ -7,7 +8,7 @@ pub struct RegExp {
 
 impl RegExp {
     pub fn new(expr: &str) -> Result<Self, Error> {
-        Ok(RegExp { automata: parse(expr)? })
+        Ok(RegExp { automata: parser::parse(expr)? })
     }
 
     pub fn full_match(&self, expr: &str) -> bool {

@@ -1,26 +1,6 @@
-use std::fmt::{Debug, Formatter, Result as FmtResult};
-
 use super::automata::Automata;
+use super::error::Error;
 use super::state::Anchor;
-
-#[derive(PartialEq)]
-pub struct Error {
-    msg: String,
-}
-
-impl Error {
-    pub fn from(msg: &str) -> Error {
-        Error { msg: String::from(msg) }
-    }
-}
-
-impl Debug for Error {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        f.debug_struct("RegexError")
-            .field("Internal Error", &self.msg)
-            .finish()
-    }
-}
 
 const CONCAT_CHAR: char = 27 as char;
 const POP_ERR: &str = "error popping from stack";

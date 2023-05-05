@@ -3,7 +3,7 @@ use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::rc::Rc;
 use std::str::Chars;
 
-use super::parser::Error;
+use super::error::Error;
 use super::state::{Anchor, AnchorState, LambdaState, State, TokenState, TrivialState};
 
 type StatePtr = Rc<RefCell<dyn State>>;
