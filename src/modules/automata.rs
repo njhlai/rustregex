@@ -119,8 +119,7 @@ impl Automata {
     pub fn search(&self, expr: &str, greedy: bool) -> Vec<String> {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
-        let (mut start, mut end) = (0, -1);
-        let mut len = end - start;
+        let (mut start, mut end, mut threshold) = (0, None, None);
 
         for transition in transition_iter(expr) {
             match transition {
@@ -135,33 +134,37 @@ impl Automata {
                 TransitionItem::Epsilon((r, anchors)) => {
                     current_states.push(vec![self.start.clone()]);
                     if !greedy {
-                        len = -1;
+                        threshold = None;
                     }
 
                     for (l, states) in current_states.iter_mut().enumerate() {
                         *states = exhaust_epsilons(states, &anchors);
 
-                        if len < (r - l) as i32 && states.contains(&self.get_end()) {
+                        if threshold.map_or(true, |len| len < r - l) && states.contains(&self.get_end()) {
                             if greedy {
-                                start = l as i32;
-                            } else if start < l as i32 {
-                                if end >= start {
-                                    results.push(String::from(&expr[(start as usize)..(end as usize)]));
+                                start = l;
+                            } else if start < l {
+                                if let Some(end) = end {
+                                    if end >= start {
+                                        results.push(String::from(&expr[start..end]));
+                                    }
                                 }
 
-                                start = l as i32;
+                                start = l;
                             }
 
-                            len = (r - l) as i32;
-                            end = r as i32;
+                            threshold = Some(r - l);
+                            end = Some(r);
                         }
                     }
                 }
             }
         }
 
-        if end >= start {
-            results.push(String::from(&expr[(start as usize)..(end as usize)]));
+        if let Some(end) = end {
+            if end >= start {
+                results.push(String::from(&expr[start..end]));
+            }
         }
 
         results
