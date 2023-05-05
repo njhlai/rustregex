@@ -120,6 +120,7 @@ impl Automata {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end) = (0, -1);
+        let mut len = end - start;
 
         for transition in transition_iter(expr) {
             match transition {
@@ -133,7 +134,9 @@ impl Automata {
                 }
                 TransitionItem::Epsilon((r, anchors)) => {
                     current_states.push(vec![self.start.clone()]);
-                    let mut len = if greedy { end - start } else { -1 };
+                    if !greedy {
+                        len = -1;
+                    }
 
                     for (l, states) in current_states.iter_mut().enumerate() {
                         *states = exhaust_epsilons(states, &anchors);
