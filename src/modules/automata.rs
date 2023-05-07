@@ -150,10 +150,12 @@ impl Automata {
                             } else {
                                 results[l] = None;
                                 ignore_subsequents -= 1;
-                            };
+                            }
                         } else if ignore_subsequents > 0 {
                             results[l] = None;
                             ignore_subsequents -= 1;
+                        } else if let Some(s) = &results[l] {
+                            ignore_subsequents = s.len().saturating_sub(1);
                         }
                     }
                 }
