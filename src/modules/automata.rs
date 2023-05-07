@@ -455,6 +455,8 @@ mod tests {
             .or(Automata::from_token('c'));
 
         assert!(nfa.full_match("abaaaaaa"));
+        assert!(nfa.full_match("abab"));
+        assert!(!nfa.full_match("abad"));
         assert!(nfa.full_match("c"));
         assert!(nfa.full_match(""));
         assert!(!nfa.full_match("bb"));
@@ -462,6 +464,8 @@ mod tests {
         assert!(!nfa.full_match("cc"));
 
         assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
+        assert_eq!(nfa.greedy_search("abab"), Some(String::from("abab")));
+        assert_eq!(nfa.greedy_search("abad"), Some(String::from("aba")));
         assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
         assert_eq!(nfa.greedy_search(""), Some(String::from("")));
         assert_eq!(nfa.greedy_search("bb"), Some(String::from("")));
@@ -469,6 +473,8 @@ mod tests {
         assert_eq!(nfa.greedy_search("cc"), Some(String::from("c")));
 
         assert_eq!(nfa.global_search("abaaaaaa"), vec!["abaaaaaa"]);
+        assert_eq!(nfa.global_search("abab"), vec!["abab"]);
+        assert_eq!(nfa.global_search("abad"), vec!["aba", ""]);
         assert_eq!(nfa.global_search("c"), vec!["c"]);
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("bb"), vec!["", "", ""]);
