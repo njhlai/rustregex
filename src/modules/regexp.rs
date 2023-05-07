@@ -19,8 +19,8 @@ impl RegExp {
         self.automata.greedy_search(expr)
     }
 
-    pub fn search(&self, expr: &str) -> Vec<String> {
-        self.automata.search(expr).1
+    pub fn global_search(&self, expr: &str) -> Vec<String> {
+        self.automata.global_search(expr)
     }
 }
 
@@ -68,21 +68,21 @@ mod tests {
             assert_eq!(regex.greedy_search("cdd"), None);
             assert_eq!(regex.greedy_search(""), None);
 
-            assert_eq!(regex.search("ce"), vec!["ce"]);
-            assert_eq!(regex.search("ace"), vec!["ace"]);
-            assert_eq!(regex.search("aaabbbababce"), vec!["aaabbbababce"]);
-            assert_eq!(regex.search("cde"), vec!["cde"]);
-            assert_eq!(regex.search("cef"), vec!["cef"]);
-            assert_eq!(regex.search("cefffff"), vec!["cefffff"]);
-            assert_eq!(regex.search("bacdefffff"), vec!["bacdefffff"]);
-            assert_eq!(regex.search("aababacdefffff"), vec!["aababacdefffff"]);
-            assert_eq!(regex.search("cdde"), Vec::<String>::new());
-            assert_eq!(regex.search("cdde"), Vec::<String>::new());
-            assert_eq!(regex.search("aacbdde"), Vec::<String>::new());
-            assert_eq!(regex.search("e"), Vec::<String>::new());
-            assert_eq!(regex.search("cdde"), Vec::<String>::new());
-            assert_eq!(regex.search("cdd"), Vec::<String>::new());
-            assert_eq!(regex.search(""), Vec::<String>::new());
+            assert_eq!(regex.global_search("ce"), vec!["ce"]);
+            assert_eq!(regex.global_search("ace"), vec!["ace"]);
+            assert_eq!(regex.global_search("aaabbbababce"), vec!["aaabbbababce"]);
+            assert_eq!(regex.global_search("cde"), vec!["cde"]);
+            assert_eq!(regex.global_search("cef"), vec!["cef"]);
+            assert_eq!(regex.global_search("cefffff"), vec!["cefffff"]);
+            assert_eq!(regex.global_search("bacdefffff"), vec!["bacdefffff"]);
+            assert_eq!(regex.global_search("aababacdefffff"), vec!["aababacdefffff"]);
+            assert_eq!(regex.global_search("cdde"), Vec::<String>::new());
+            assert_eq!(regex.global_search("cdde"), Vec::<String>::new());
+            assert_eq!(regex.global_search("aacbdde"), Vec::<String>::new());
+            assert_eq!(regex.global_search("e"), Vec::<String>::new());
+            assert_eq!(regex.global_search("cdde"), Vec::<String>::new());
+            assert_eq!(regex.global_search("cdd"), Vec::<String>::new());
+            assert_eq!(regex.global_search(""), Vec::<String>::new());
         }
     }
 
@@ -122,19 +122,19 @@ mod tests {
             assert_eq!(regex.greedy_search("zzbabaaaabbam"), Some(String::from("baaaa")));
             assert_eq!(regex.greedy_search("ace"), None);
 
-            assert_eq!(regex.search("baababaaa"), vec!["baa", "ba", "baaa"]);
-            assert_eq!(regex.search("b"), vec!["b"]);
-            assert_eq!(regex.search("xby"), vec!["b"]);
-            assert_eq!(regex.search("xb"), vec!["b"]);
-            assert_eq!(regex.search("by"), vec!["b"]);
-            assert_eq!(regex.search("ba"), vec!["ba"]);
-            assert_eq!(regex.search("bb"), vec!["b", "b"]);
-            assert_eq!(regex.search("baaaaa"), vec!["baaaaa"]);
-            assert_eq!(regex.search("baaaaam"), vec!["baaaaa"]);
-            assert_eq!(regex.search("kabaaaaam"), vec!["baaaaa"]);
-            assert_eq!(regex.search("zzzzbaaaam"), vec!["baaaa"]);
-            assert_eq!(regex.search("zzbabaaaabbam"), vec!["ba", "baaaa", "b", "ba"]);
-            assert_eq!(regex.search("ace"), Vec::<String>::new());
+            assert_eq!(regex.global_search("baababaaa"), vec!["baa", "ba", "baaa"]);
+            assert_eq!(regex.global_search("b"), vec!["b"]);
+            assert_eq!(regex.global_search("xby"), vec!["b"]);
+            assert_eq!(regex.global_search("xb"), vec!["b"]);
+            assert_eq!(regex.global_search("by"), vec!["b"]);
+            assert_eq!(regex.global_search("ba"), vec!["ba"]);
+            assert_eq!(regex.global_search("bb"), vec!["b", "b"]);
+            assert_eq!(regex.global_search("baaaaa"), vec!["baaaaa"]);
+            assert_eq!(regex.global_search("baaaaam"), vec!["baaaaa"]);
+            assert_eq!(regex.global_search("kabaaaaam"), vec!["baaaaa"]);
+            assert_eq!(regex.global_search("zzzzbaaaam"), vec!["baaaa"]);
+            assert_eq!(regex.global_search("zzbabaaaabbam"), vec!["ba", "baaaa", "b", "ba"]);
+            assert_eq!(regex.global_search("ace"), Vec::<String>::new());
         }
     }
 
@@ -160,12 +160,12 @@ mod tests {
             assert_eq!(regex.greedy_search("zabc"), None);
             assert_eq!(regex.greedy_search("eeabc"), None);
 
-            assert_eq!(regex.search("abc"), vec!["abc"]);
-            assert_eq!(regex.search("abcccc"), vec!["abcccc"]);
-            assert_eq!(regex.search("abcd"), vec!["abc"]);
-            assert_eq!(regex.search("abcdabccc"), vec!["abc"]);
-            assert_eq!(regex.search("zabc"), Vec::<String>::new());
-            assert_eq!(regex.search("eeabc"), Vec::<String>::new());
+            assert_eq!(regex.global_search("abc"), vec!["abc"]);
+            assert_eq!(regex.global_search("abcccc"), vec!["abcccc"]);
+            assert_eq!(regex.global_search("abcd"), vec!["abc"]);
+            assert_eq!(regex.global_search("abcdabccc"), vec!["abc"]);
+            assert_eq!(regex.global_search("zabc"), Vec::<String>::new());
+            assert_eq!(regex.global_search("eeabc"), Vec::<String>::new());
         }
     }
 
@@ -189,11 +189,11 @@ mod tests {
             assert_eq!(regex.greedy_search("wxyz"), Some(String::from("xyz")));
             assert_eq!(regex.greedy_search("xyzaa"), None);
 
-            assert_eq!(regex.search("xyz"), vec!["xyz"]);
-            assert_eq!(regex.search("xxxyzwxyz"), vec!["xyz"]);
-            assert_eq!(regex.search("xyzzzz"), vec!["xyzzzz"]);
-            assert_eq!(regex.search("wxyz"), vec!["xyz"]);
-            assert_eq!(regex.search("xyzaa"), Vec::<String>::new());
+            assert_eq!(regex.global_search("xyz"), vec!["xyz"]);
+            assert_eq!(regex.global_search("xxxyzwxyz"), vec!["xyz"]);
+            assert_eq!(regex.global_search("xyzzzz"), vec!["xyzzzz"]);
+            assert_eq!(regex.global_search("wxyz"), vec!["xyz"]);
+            assert_eq!(regex.global_search("xyzaa"), Vec::<String>::new());
         }
     }
 
@@ -215,10 +215,10 @@ mod tests {
             assert_eq!(regex.greedy_search("b"), None);
             assert_eq!(regex.greedy_search("ab"), None);
 
-            assert_eq!(regex.search(""), vec![""]);
-            assert_eq!(regex.search("a"), vec!["a"]);
-            assert_eq!(regex.search("b"), Vec::<String>::new());
-            assert_eq!(regex.search("ab"), Vec::<String>::new());
+            assert_eq!(regex.global_search(""), vec![""]);
+            assert_eq!(regex.global_search("a"), vec!["a"]);
+            assert_eq!(regex.global_search("b"), Vec::<String>::new());
+            assert_eq!(regex.global_search("ab"), Vec::<String>::new());
         }
     }
 
@@ -234,7 +234,7 @@ mod tests {
 
             assert_eq!(regex.greedy_search("Dhelmise"), None);
 
-            assert_eq!(regex.search("Dhelmise"), Vec::<String>::new());
+            assert_eq!(regex.global_search("Dhelmise"), Vec::<String>::new());
         }
     }
 }

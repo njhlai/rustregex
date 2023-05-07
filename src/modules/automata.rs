@@ -111,7 +111,11 @@ impl Automata {
         self.search(expr).0
     }
 
-    pub fn search(&self, expr: &str) -> (Option<String>, Vec<String>) {
+    pub fn global_search(&self, expr: &str) -> Vec<String> {
+        self.search(expr).1
+    }
+
+    fn search(&self, expr: &str) -> (Option<String>, Vec<String>) {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end, mut threshold) = (0, None, None);
@@ -302,13 +306,13 @@ mod tests {
         assert_eq!(nfa.greedy_search("abcde"), Some(String::from("cd")));
         assert_eq!(nfa.greedy_search("monty python"), None);
 
-        assert_eq!(nfa.search("").1, Vec::<String>::new());
-        assert_eq!(nfa.search("c").1, Vec::<String>::new());
-        assert_eq!(nfa.search("d").1, Vec::<String>::new());
-        assert_eq!(nfa.search("cd").1, vec!["cd"]);
-        assert_eq!(nfa.search("dc").1, Vec::<String>::new());
-        assert_eq!(nfa.search("abcde").1, vec!["cd"]);
-        assert_eq!(nfa.search("monty python").1, Vec::<String>::new());
+        assert_eq!(nfa.global_search(""), Vec::<String>::new());
+        assert_eq!(nfa.global_search("c"), Vec::<String>::new());
+        assert_eq!(nfa.global_search("d"), Vec::<String>::new());
+        assert_eq!(nfa.global_search("cd"), vec!["cd"]);
+        assert_eq!(nfa.global_search("dc"), Vec::<String>::new());
+        assert_eq!(nfa.global_search("abcde"), vec!["cd"]);
+        assert_eq!(nfa.global_search("monty python"), Vec::<String>::new());
     }
 
     #[test]
@@ -331,13 +335,13 @@ mod tests {
         assert_eq!(nfa.greedy_search("abcde"), Some(String::from("c")));
         assert_eq!(nfa.greedy_search("monty python"), None);
 
-        assert_eq!(nfa.search("").1, Vec::<String>::new());
-        assert_eq!(nfa.search("c").1, vec!["c"]);
-        assert_eq!(nfa.search("d").1, vec!["d"]);
-        assert_eq!(nfa.search("cd").1, vec!["c", "d"]);
-        assert_eq!(nfa.search("dc").1, vec!["d", "c"]);
-        assert_eq!(nfa.search("abcde").1, vec!["c", "d"]);
-        assert_eq!(nfa.search("monty python").1, Vec::<String>::new());
+        assert_eq!(nfa.global_search(""), Vec::<String>::new());
+        assert_eq!(nfa.global_search("c"), vec!["c"]);
+        assert_eq!(nfa.global_search("d"), vec!["d"]);
+        assert_eq!(nfa.global_search("cd"), vec!["c", "d"]);
+        assert_eq!(nfa.global_search("dc"), vec!["d", "c"]);
+        assert_eq!(nfa.global_search("abcde"), vec!["c", "d"]);
+        assert_eq!(nfa.global_search("monty python"), Vec::<String>::new());
     }
 
     #[test]
@@ -362,15 +366,15 @@ mod tests {
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("").1, vec![""]);
-        assert_eq!(nfa.search("a").1, vec!["a"]);
-        assert_eq!(nfa.search("aaa").1, vec!["aaa"]);
-        assert_eq!(nfa.search("b").1, vec!["", ""]);
-        assert_eq!(nfa.search("ab").1, vec!["a", ""]);
-        assert_eq!(nfa.search("ba").1, vec!["", "a"]);
-        assert_eq!(nfa.search("basic").1, vec!["", "a", "", "", ""]);
+        assert_eq!(nfa.global_search(""), vec![""]);
+        assert_eq!(nfa.global_search("a"), vec!["a"]);
+        assert_eq!(nfa.global_search("aaa"), vec!["aaa"]);
+        assert_eq!(nfa.global_search("b"), vec!["", ""]);
+        assert_eq!(nfa.global_search("ab"), vec!["a", ""]);
+        assert_eq!(nfa.global_search("ba"), vec!["", "a"]);
+        assert_eq!(nfa.global_search("basic"), vec!["", "a", "", "", ""]);
         assert_eq!(
-            nfa.search("this is a string").1,
+            nfa.global_search("this is a string"),
             vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
         );
     }
@@ -397,14 +401,14 @@ mod tests {
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("").1, Vec::<String>::new());
-        assert_eq!(nfa.search("a").1, vec!["a"]);
-        assert_eq!(nfa.search("aaa").1, vec!["aaa"]);
-        assert_eq!(nfa.search("b").1, Vec::<String>::new());
-        assert_eq!(nfa.search("ab").1, vec!["a"]);
-        assert_eq!(nfa.search("ba").1, vec!["a"]);
-        assert_eq!(nfa.search("basic").1, vec!["a"]);
-        assert_eq!(nfa.search("this is a string").1, vec!["a"]);
+        assert_eq!(nfa.global_search(""), Vec::<String>::new());
+        assert_eq!(nfa.global_search("a"), vec!["a"]);
+        assert_eq!(nfa.global_search("aaa"), vec!["aaa"]);
+        assert_eq!(nfa.global_search("b"), Vec::<String>::new());
+        assert_eq!(nfa.global_search("ab"), vec!["a"]);
+        assert_eq!(nfa.global_search("ba"), vec!["a"]);
+        assert_eq!(nfa.global_search("basic"), vec!["a"]);
+        assert_eq!(nfa.global_search("this is a string"), vec!["a"]);
     }
 
     #[test]
@@ -429,15 +433,15 @@ mod tests {
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("").1, vec![""]);
-        assert_eq!(nfa.search("a").1, vec!["a"]);
-        assert_eq!(nfa.search("aaa").1, vec!["a", "a", "a"]);
-        assert_eq!(nfa.search("b").1, vec!["", ""]);
-        assert_eq!(nfa.search("ab").1, vec!["a", ""]);
-        assert_eq!(nfa.search("ba").1, vec!["", "a"]);
-        assert_eq!(nfa.search("basic").1, vec!["", "a", "", "", ""]);
+        assert_eq!(nfa.global_search(""), vec![""]);
+        assert_eq!(nfa.global_search("a"), vec!["a"]);
+        assert_eq!(nfa.global_search("aaa"), vec!["a", "a", "a"]);
+        assert_eq!(nfa.global_search("b"), vec!["", ""]);
+        assert_eq!(nfa.global_search("ab"), vec!["a", ""]);
+        assert_eq!(nfa.global_search("ba"), vec!["", "a"]);
+        assert_eq!(nfa.global_search("basic"), vec!["", "a", "", "", ""]);
         assert_eq!(
-            nfa.search("this is a string").1,
+            nfa.global_search("this is a string"),
             vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
         );
     }
@@ -464,11 +468,11 @@ mod tests {
         assert_eq!(nfa.greedy_search("aaaaaaac"), Some(String::from("aaaaaaa")));
         assert_eq!(nfa.greedy_search("cc"), Some(String::from("c")));
 
-        assert_eq!(nfa.search("abaaaaaa").1, vec!["abaaaaaa"]);
-        assert_eq!(nfa.search("c").1, vec!["c"]);
-        assert_eq!(nfa.search("").1, vec![""]);
-        assert_eq!(nfa.search("bb").1, vec!["", "", ""]);
-        assert_eq!(nfa.search("aaaaaaac").1, vec!["aaaaaaa", "c"]);
-        assert_eq!(nfa.search("cc").1, vec!["c", "c"]);
+        assert_eq!(nfa.global_search("abaaaaaa"), vec!["abaaaaaa"]);
+        assert_eq!(nfa.global_search("c"), vec!["c"]);
+        assert_eq!(nfa.global_search(""), vec![""]);
+        assert_eq!(nfa.global_search("bb"), vec!["", "", ""]);
+        assert_eq!(nfa.global_search("aaaaaaac"), vec!["aaaaaaa", "c"]);
+        assert_eq!(nfa.global_search("cc"), vec!["c", "c"]);
     }
 }
