@@ -117,7 +117,7 @@ impl Automata {
     fn search(&self, expr: &str) -> (Option<String>, Vec<String>) {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
-        let (mut start, mut end, mut threshold) = (0, None, None);
+        let (mut start, mut end) = (0, None);
 
         for transition in transition_iter(expr) {
             match transition {
@@ -138,8 +138,7 @@ impl Automata {
                         *states = exhaust_epsilons(states, &anchors);
 
                         if states.contains(&self.get_end()) {
-                            if threshold.map_or(true, |len| len < r - l) {
-                                threshold = Some(r - l);
+                            if end.map_or(true, |end| end - start < r - l) {
                                 start = l;
                                 end = Some(r);
                             }
