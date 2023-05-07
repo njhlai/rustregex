@@ -1,9 +1,9 @@
 use std::cell::RefCell;
+use std::clone::Clone;
 use std::fmt::{Debug, Formatter, Result as FmtResult};
 use std::rc::Rc;
 use std::str::Chars;
 
-use super::error::Error;
 use super::state::{Anchor, AnchorState, LambdaState, State, TokenState, TrivialState};
 
 type StatePtr = Rc<RefCell<dyn State>>;
@@ -100,32 +100,18 @@ impl Automata {
     }
 
     pub fn full_match(&self, expr: &str) -> bool {
-        match self.greedy_search(expr) {
-            Ok(result) => {
-                if let Some(matched) = result {
-                    matched.len() == expr.len()
-                } else {
-                    false
-                }
-            }
-            Err(error) => {
-                println!("Warning: {error:#?}");
-                false
-            }
-        }
-    }
-
-    pub fn greedy_search(&self, expr: &str) -> Result<Option<String>, Error> {
-        let mut search_results = self.search(expr, true);
-
-        if search_results.len() > 1 {
-            Err(Error::from("too many results returned for greedy search"))
+        if let Some(matched) = self.greedy_search(expr) {
+            matched.len() == expr.len()
         } else {
-            Ok(search_results.pop())
+            false
         }
     }
 
-    pub fn search(&self, expr: &str, greedy: bool) -> Vec<String> {
+    pub fn greedy_search(&self, expr: &str) -> Option<String> {
+        self.search(expr).0
+    }
+
+    pub fn search(&self, expr: &str) -> (Option<String>, Vec<String>) {
         let mut results = vec![];
         let mut current_states: Vec<Vec<StatePtr>> = vec![];
         let (mut start, mut end, mut threshold) = (0, None, None);
@@ -142,41 +128,46 @@ impl Automata {
                 }
                 TransitionItem::Epsilon((r, anchors)) => {
                     current_states.push(vec![self.start.clone()]);
-                    if !greedy {
-                        threshold = None;
-                    }
+                    results.push(None);
 
+                    let mut ignore_subsequents = 0;
                     for (l, states) in current_states.iter_mut().enumerate() {
                         *states = exhaust_epsilons(states, &anchors);
 
-                        if threshold.map_or(true, |len| len < r - l) && states.contains(&self.get_end()) {
-                            if greedy {
+                        if states.contains(&self.get_end()) {
+                            if threshold.map_or(true, |len| len < r - l) {
+                                threshold = Some(r - l);
                                 start = l;
-                            } else if start < l {
-                                if let Some(end) = end {
-                                    if end >= start {
-                                        results.push(String::from(&expr[start..end]));
-                                    }
-                                }
-
-                                start = l;
+                                end = Some(r);
                             }
 
-                            threshold = Some(r - l);
-                            end = Some(r);
+                            if ignore_subsequents == 0 {
+                                results[l] = Some(String::from(&expr[l..r]));
+                                ignore_subsequents = r - l;
+                            } else {
+                                results[l] = None;
+                                ignore_subsequents -= 1;
+                            };
+                        } else if ignore_subsequents > 0 {
+                            results[l] = None;
+                            ignore_subsequents -= 1;
                         }
                     }
                 }
             }
         }
 
-        if let Some(end) = end {
+        let greedy_match = if let Some(end) = end {
             if end >= start {
-                results.push(String::from(&expr[start..end]));
+                Some(String::from(&expr[start..end]))
+            } else {
+                None
             }
-        }
+        } else {
+            None
+        };
 
-        results
+        (greedy_match, results.iter().filter_map(Clone::clone).collect())
     }
 
     fn get_end(&self) -> StatePtr {
@@ -303,21 +294,21 @@ mod tests {
         assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
-        assert_eq!(nfa.greedy_search(""), Ok(None));
-        assert_eq!(nfa.greedy_search("c"), Ok(None));
-        assert_eq!(nfa.greedy_search("d"), Ok(None));
-        assert_eq!(nfa.greedy_search("cd"), Ok(Some(String::from("cd"))));
-        assert_eq!(nfa.greedy_search("dc"), Ok(None));
-        assert_eq!(nfa.greedy_search("abcde"), Ok(Some(String::from("cd"))));
-        assert_eq!(nfa.greedy_search("monty python"), Ok(None));
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("c"), None);
+        assert_eq!(nfa.greedy_search("d"), None);
+        assert_eq!(nfa.greedy_search("cd"), Some(String::from("cd")));
+        assert_eq!(nfa.greedy_search("dc"), None);
+        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("cd")));
+        assert_eq!(nfa.greedy_search("monty python"), None);
 
-        assert_eq!(nfa.search("", false), Vec::<String>::new());
-        assert_eq!(nfa.search("c", false), Vec::<String>::new());
-        assert_eq!(nfa.search("d", false), Vec::<String>::new());
-        assert_eq!(nfa.search("cd", false), vec!["cd"]);
-        assert_eq!(nfa.search("dc", false), Vec::<String>::new());
-        assert_eq!(nfa.search("abcde", false), vec!["cd"]);
-        assert_eq!(nfa.search("monty python", false), Vec::<String>::new());
+        assert_eq!(nfa.search("").1, Vec::<String>::new());
+        assert_eq!(nfa.search("c").1, Vec::<String>::new());
+        assert_eq!(nfa.search("d").1, Vec::<String>::new());
+        assert_eq!(nfa.search("cd").1, vec!["cd"]);
+        assert_eq!(nfa.search("dc").1, Vec::<String>::new());
+        assert_eq!(nfa.search("abcde").1, vec!["cd"]);
+        assert_eq!(nfa.search("monty python").1, Vec::<String>::new());
     }
 
     #[test]
@@ -332,21 +323,21 @@ mod tests {
         assert!(!nfa.full_match("abcde"));
         assert!(!nfa.full_match("monty python"));
 
-        assert_eq!(nfa.greedy_search(""), Ok(None));
-        assert_eq!(nfa.greedy_search("c"), Ok(Some(String::from("c"))));
-        assert_eq!(nfa.greedy_search("d"), Ok(Some(String::from("d"))));
-        assert_eq!(nfa.greedy_search("cd"), Ok(Some(String::from("c"))));
-        assert_eq!(nfa.greedy_search("dc"), Ok(Some(String::from("d"))));
-        assert_eq!(nfa.greedy_search("abcde"), Ok(Some(String::from("c"))));
-        assert_eq!(nfa.greedy_search("monty python"), Ok(None));
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("d"), Some(String::from("d")));
+        assert_eq!(nfa.greedy_search("cd"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("dc"), Some(String::from("d")));
+        assert_eq!(nfa.greedy_search("abcde"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search("monty python"), None);
 
-        assert_eq!(nfa.search("", false), Vec::<String>::new());
-        assert_eq!(nfa.search("c", false), vec!["c"]);
-        assert_eq!(nfa.search("d", false), vec!["d"]);
-        assert_eq!(nfa.search("cd", false), vec!["c", "d"]);
-        assert_eq!(nfa.search("dc", false), vec!["d", "c"]);
-        assert_eq!(nfa.search("abcde", false), vec!["c", "d"]);
-        assert_eq!(nfa.search("monty python", false), Vec::<String>::new());
+        assert_eq!(nfa.search("").1, Vec::<String>::new());
+        assert_eq!(nfa.search("c").1, vec!["c"]);
+        assert_eq!(nfa.search("d").1, vec!["d"]);
+        assert_eq!(nfa.search("cd").1, vec!["c", "d"]);
+        assert_eq!(nfa.search("dc").1, vec!["d", "c"]);
+        assert_eq!(nfa.search("abcde").1, vec!["c", "d"]);
+        assert_eq!(nfa.search("monty python").1, Vec::<String>::new());
     }
 
     #[test]
@@ -362,24 +353,24 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("aaa"))));
-        assert_eq!(nfa.greedy_search("b"), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("", false), vec![""]);
-        assert_eq!(nfa.search("a", false), vec!["a"]);
-        assert_eq!(nfa.search("aaa", false), vec!["aaa"]);
-        assert_eq!(nfa.search("b", false), vec!["", ""]);
-        assert_eq!(nfa.search("ab", false), vec!["a", ""]);
-        assert_eq!(nfa.search("ba", false), vec!["", "a"]);
-        assert_eq!(nfa.search("basic", false), vec!["", "a", "", "", ""]);
+        assert_eq!(nfa.search("").1, vec![""]);
+        assert_eq!(nfa.search("a").1, vec!["a"]);
+        assert_eq!(nfa.search("aaa").1, vec!["aaa"]);
+        assert_eq!(nfa.search("b").1, vec!["", ""]);
+        assert_eq!(nfa.search("ab").1, vec!["a", ""]);
+        assert_eq!(nfa.search("ba").1, vec!["", "a"]);
+        assert_eq!(nfa.search("basic").1, vec!["", "a", "", "", ""]);
         assert_eq!(
-            nfa.search("this is a string", false),
+            nfa.search("this is a string").1,
             vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
         );
     }
@@ -397,23 +388,23 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), Ok(None));
-        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("aaa"))));
-        assert_eq!(nfa.greedy_search("b"), Ok(None));
-        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search(""), None);
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(nfa.greedy_search("b"), None);
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("", false), Vec::<String>::new());
-        assert_eq!(nfa.search("a", false), vec!["a"]);
-        assert_eq!(nfa.search("aaa", false), vec!["aaa"]);
-        assert_eq!(nfa.search("b", false), Vec::<String>::new());
-        assert_eq!(nfa.search("ab", false), vec!["a"]);
-        assert_eq!(nfa.search("ba", false), vec!["a"]);
-        assert_eq!(nfa.search("basic", false), vec!["a"]);
-        assert_eq!(nfa.search("this is a string", false), vec!["a"]);
+        assert_eq!(nfa.search("").1, Vec::<String>::new());
+        assert_eq!(nfa.search("a").1, vec!["a"]);
+        assert_eq!(nfa.search("aaa").1, vec!["aaa"]);
+        assert_eq!(nfa.search("b").1, Vec::<String>::new());
+        assert_eq!(nfa.search("ab").1, vec!["a"]);
+        assert_eq!(nfa.search("ba").1, vec!["a"]);
+        assert_eq!(nfa.search("basic").1, vec!["a"]);
+        assert_eq!(nfa.search("this is a string").1, vec!["a"]);
     }
 
     #[test]
@@ -429,24 +420,24 @@ mod tests {
         assert!(!nfa.full_match("basic"));
         assert!(!nfa.full_match("this is a string"));
 
-        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("a"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("aaa"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("b"), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("ab"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("ba"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("basic"), Ok(Some(String::from("a"))));
-        assert_eq!(nfa.greedy_search("this is a string"), Ok(Some(String::from("a"))));
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("a"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("aaa"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("b"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
-        assert_eq!(nfa.search("", false), vec![""]);
-        assert_eq!(nfa.search("a", false), vec!["a"]);
-        assert_eq!(nfa.search("aaa", false), vec!["a", "a", "a"]);
-        assert_eq!(nfa.search("b", false), vec!["", ""]);
-        assert_eq!(nfa.search("ab", false), vec!["a", ""]);
-        assert_eq!(nfa.search("ba", false), vec!["", "a"]);
-        assert_eq!(nfa.search("basic", false), vec!["", "a", "", "", ""]);
+        assert_eq!(nfa.search("").1, vec![""]);
+        assert_eq!(nfa.search("a").1, vec!["a"]);
+        assert_eq!(nfa.search("aaa").1, vec!["a", "a", "a"]);
+        assert_eq!(nfa.search("b").1, vec!["", ""]);
+        assert_eq!(nfa.search("ab").1, vec!["a", ""]);
+        assert_eq!(nfa.search("ba").1, vec!["", "a"]);
+        assert_eq!(nfa.search("basic").1, vec!["", "a", "", "", ""]);
         assert_eq!(
-            nfa.search("this is a string", false),
+            nfa.search("this is a string").1,
             vec!["", "", "", "", "", "", "", "", "a", "", "", "", "", "", "", ""]
         );
     }
@@ -466,18 +457,18 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
 
-        assert_eq!(nfa.greedy_search("abaaaaaa"), Ok(Some(String::from("abaaaaaa"))));
-        assert_eq!(nfa.greedy_search("c"), Ok(Some(String::from("c"))));
-        assert_eq!(nfa.greedy_search(""), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("bb"), Ok(Some(String::from(""))));
-        assert_eq!(nfa.greedy_search("aaaaaaac"), Ok(Some(String::from("aaaaaaa"))));
-        assert_eq!(nfa.greedy_search("cc"), Ok(Some(String::from("c"))));
+        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
+        assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
+        assert_eq!(nfa.greedy_search(""), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("bb"), Some(String::from("")));
+        assert_eq!(nfa.greedy_search("aaaaaaac"), Some(String::from("aaaaaaa")));
+        assert_eq!(nfa.greedy_search("cc"), Some(String::from("c")));
 
-        assert_eq!(nfa.search("abaaaaaa", false), vec!["abaaaaaa"]);
-        assert_eq!(nfa.search("c", false), vec!["c"]);
-        assert_eq!(nfa.search("", false), vec![""]);
-        assert_eq!(nfa.search("bb", false), vec!["", "", ""]);
-        assert_eq!(nfa.search("aaaaaaac", false), vec!["aaaaaaa", "c"]);
-        assert_eq!(nfa.search("cc", false), vec!["c", "c"]);
+        assert_eq!(nfa.search("abaaaaaa").1, vec!["abaaaaaa"]);
+        assert_eq!(nfa.search("c").1, vec!["c"]);
+        assert_eq!(nfa.search("").1, vec![""]);
+        assert_eq!(nfa.search("bb").1, vec!["", "", ""]);
+        assert_eq!(nfa.search("aaaaaaac").1, vec!["aaaaaaa", "c"]);
+        assert_eq!(nfa.search("cc").1, vec!["c", "c"]);
     }
 }

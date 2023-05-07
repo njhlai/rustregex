@@ -15,12 +15,12 @@ impl RegExp {
         self.automata.full_match(expr)
     }
 
-    pub fn greedy_search(&self, expr: &str) -> Result<Option<String>, Error> {
+    pub fn greedy_search(&self, expr: &str) -> Option<String> {
         self.automata.greedy_search(expr)
     }
 
     pub fn search(&self, expr: &str) -> Vec<String> {
-        self.automata.search(expr, false)
+        self.automata.search(expr).1
     }
 }
 
@@ -52,21 +52,21 @@ mod tests {
             assert!(!regex.full_match("cdd"));
             assert!(!regex.full_match(""));
 
-            assert_eq!(regex.greedy_search("ce"), Ok(Some(String::from("ce"))));
-            assert_eq!(regex.greedy_search("ace"), Ok(Some(String::from("ace"))));
-            assert_eq!(regex.greedy_search("aaabbbababce"), Ok(Some(String::from("aaabbbababce"))));
-            assert_eq!(regex.greedy_search("cde"), Ok(Some(String::from("cde"))));
-            assert_eq!(regex.greedy_search("cef"), Ok(Some(String::from("cef"))));
-            assert_eq!(regex.greedy_search("cefffff"), Ok(Some(String::from("cefffff"))));
-            assert_eq!(regex.greedy_search("bacdefffff"), Ok(Some(String::from("bacdefffff"))));
-            assert_eq!(regex.greedy_search("aababacdefffff"), Ok(Some(String::from("aababacdefffff"))));
-            assert_eq!(regex.greedy_search("cdde"), Ok(None));
-            assert_eq!(regex.greedy_search("cdde"), Ok(None));
-            assert_eq!(regex.greedy_search("aacbdde"), Ok(None));
-            assert_eq!(regex.greedy_search("e"), Ok(None));
-            assert_eq!(regex.greedy_search("cdde"), Ok(None));
-            assert_eq!(regex.greedy_search("cdd"), Ok(None));
-            assert_eq!(regex.greedy_search(""), Ok(None));
+            assert_eq!(regex.greedy_search("ce"), Some(String::from("ce")));
+            assert_eq!(regex.greedy_search("ace"), Some(String::from("ace")));
+            assert_eq!(regex.greedy_search("aaabbbababce"), Some(String::from("aaabbbababce")));
+            assert_eq!(regex.greedy_search("cde"), Some(String::from("cde")));
+            assert_eq!(regex.greedy_search("cef"), Some(String::from("cef")));
+            assert_eq!(regex.greedy_search("cefffff"), Some(String::from("cefffff")));
+            assert_eq!(regex.greedy_search("bacdefffff"), Some(String::from("bacdefffff")));
+            assert_eq!(regex.greedy_search("aababacdefffff"), Some(String::from("aababacdefffff")));
+            assert_eq!(regex.greedy_search("cdde"), None);
+            assert_eq!(regex.greedy_search("cdde"), None);
+            assert_eq!(regex.greedy_search("aacbdde"), None);
+            assert_eq!(regex.greedy_search("e"), None);
+            assert_eq!(regex.greedy_search("cdde"), None);
+            assert_eq!(regex.greedy_search("cdd"), None);
+            assert_eq!(regex.greedy_search(""), None);
 
             assert_eq!(regex.search("ce"), vec!["ce"]);
             assert_eq!(regex.search("ace"), vec!["ace"]);
@@ -108,19 +108,19 @@ mod tests {
             assert!(!regex.full_match("zzbabaaaabbbam"));
             assert!(!regex.full_match("ace"));
 
-            assert_eq!(regex.greedy_search("baababaaa"), Ok(Some(String::from("baaa"))));
-            assert_eq!(regex.greedy_search("b"), Ok(Some(String::from("b"))));
-            assert_eq!(regex.greedy_search("xby"), Ok(Some(String::from("b"))));
-            assert_eq!(regex.greedy_search("xb"), Ok(Some(String::from("b"))));
-            assert_eq!(regex.greedy_search("by"), Ok(Some(String::from("b"))));
-            assert_eq!(regex.greedy_search("ba"), Ok(Some(String::from("ba"))));
-            assert_eq!(regex.greedy_search("bb"), Ok(Some(String::from("b"))));
-            assert_eq!(regex.greedy_search("baaaaa"), Ok(Some(String::from("baaaaa"))));
-            assert_eq!(regex.greedy_search("baaaaam"), Ok(Some(String::from("baaaaa"))));
-            assert_eq!(regex.greedy_search("kabaaaaam"), Ok(Some(String::from("baaaaa"))));
-            assert_eq!(regex.greedy_search("zzzzbaaaam"), Ok(Some(String::from("baaaa"))));
-            assert_eq!(regex.greedy_search("zzbabaaaabbam"), Ok(Some(String::from("baaaa"))));
-            assert_eq!(regex.greedy_search("ace"), Ok(None));
+            assert_eq!(regex.greedy_search("baababaaa"), Some(String::from("baaa")));
+            assert_eq!(regex.greedy_search("b"), Some(String::from("b")));
+            assert_eq!(regex.greedy_search("xby"), Some(String::from("b")));
+            assert_eq!(regex.greedy_search("xb"), Some(String::from("b")));
+            assert_eq!(regex.greedy_search("by"), Some(String::from("b")));
+            assert_eq!(regex.greedy_search("ba"), Some(String::from("ba")));
+            assert_eq!(regex.greedy_search("bb"), Some(String::from("b")));
+            assert_eq!(regex.greedy_search("baaaaa"), Some(String::from("baaaaa")));
+            assert_eq!(regex.greedy_search("baaaaam"), Some(String::from("baaaaa")));
+            assert_eq!(regex.greedy_search("kabaaaaam"), Some(String::from("baaaaa")));
+            assert_eq!(regex.greedy_search("zzzzbaaaam"), Some(String::from("baaaa")));
+            assert_eq!(regex.greedy_search("zzbabaaaabbam"), Some(String::from("baaaa")));
+            assert_eq!(regex.greedy_search("ace"), None);
 
             assert_eq!(regex.search("baababaaa"), vec!["baa", "ba", "baaa"]);
             assert_eq!(regex.search("b"), vec!["b"]);
@@ -153,12 +153,12 @@ mod tests {
             assert!(!regex.full_match("zabc"));
             assert!(!regex.full_match("eeabc"));
 
-            assert_eq!(regex.greedy_search("abc"), Ok(Some(String::from("abc"))));
-            assert_eq!(regex.greedy_search("abcccc"), Ok(Some(String::from("abcccc"))));
-            assert_eq!(regex.greedy_search("abcd"), Ok(Some(String::from("abc"))));
-            assert_eq!(regex.greedy_search("abcdabccc"), Ok(Some(String::from("abc"))));
-            assert_eq!(regex.greedy_search("zabc"), Ok(None));
-            assert_eq!(regex.greedy_search("eeabc"), Ok(None));
+            assert_eq!(regex.greedy_search("abc"), Some(String::from("abc")));
+            assert_eq!(regex.greedy_search("abcccc"), Some(String::from("abcccc")));
+            assert_eq!(regex.greedy_search("abcd"), Some(String::from("abc")));
+            assert_eq!(regex.greedy_search("abcdabccc"), Some(String::from("abc")));
+            assert_eq!(regex.greedy_search("zabc"), None);
+            assert_eq!(regex.greedy_search("eeabc"), None);
 
             assert_eq!(regex.search("abc"), vec!["abc"]);
             assert_eq!(regex.search("abcccc"), vec!["abcccc"]);
@@ -183,11 +183,11 @@ mod tests {
             assert!(!regex.full_match("wxyz"));
             assert!(!regex.full_match("xyza"));
 
-            assert_eq!(regex.greedy_search("xyz"), Ok(Some(String::from("xyz"))));
-            assert_eq!(regex.greedy_search("xxxyzwxyz"), Ok(Some(String::from("xyz"))));
-            assert_eq!(regex.greedy_search("xyzzzz"), Ok(Some(String::from("xyzzzz"))));
-            assert_eq!(regex.greedy_search("wxyz"), Ok(Some(String::from("xyz"))));
-            assert_eq!(regex.greedy_search("xyzaa"), Ok(None));
+            assert_eq!(regex.greedy_search("xyz"), Some(String::from("xyz")));
+            assert_eq!(regex.greedy_search("xxxyzwxyz"), Some(String::from("xyz")));
+            assert_eq!(regex.greedy_search("xyzzzz"), Some(String::from("xyzzzz")));
+            assert_eq!(regex.greedy_search("wxyz"), Some(String::from("xyz")));
+            assert_eq!(regex.greedy_search("xyzaa"), None);
 
             assert_eq!(regex.search("xyz"), vec!["xyz"]);
             assert_eq!(regex.search("xxxyzwxyz"), vec!["xyz"]);
@@ -210,10 +210,10 @@ mod tests {
             assert!(!regex.full_match("b"));
             assert!(!regex.full_match("ab"));
 
-            assert_eq!(regex.greedy_search(""), Ok(Some(String::from(""))));
-            assert_eq!(regex.greedy_search("a"), Ok(Some(String::from("a"))));
-            assert_eq!(regex.greedy_search("b"), Ok(None));
-            assert_eq!(regex.greedy_search("ab"), Ok(None));
+            assert_eq!(regex.greedy_search(""), Some(String::from("")));
+            assert_eq!(regex.greedy_search("a"), Some(String::from("a")));
+            assert_eq!(regex.greedy_search("b"), None);
+            assert_eq!(regex.greedy_search("ab"), None);
 
             assert_eq!(regex.search(""), vec![""]);
             assert_eq!(regex.search("a"), vec!["a"]);
@@ -232,7 +232,7 @@ mod tests {
         if let Ok(regex) = regexp {
             assert!(!regex.full_match("Dhelmise"));
 
-            assert_eq!(regex.greedy_search("Dhelmise"), Ok(None));
+            assert_eq!(regex.greedy_search("Dhelmise"), None);
 
             assert_eq!(regex.search("Dhelmise"), Vec::<String>::new());
         }
