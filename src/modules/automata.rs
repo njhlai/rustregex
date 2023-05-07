@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::clone::Clone;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::str::Chars;
@@ -171,7 +170,7 @@ impl Automata {
             None
         };
 
-        (greedy_match, results.iter().filter_map(Clone::clone).collect())
+        (greedy_match, results.into_iter().flatten().collect())
     }
 
     fn get_end(&self) -> StatePtr {
