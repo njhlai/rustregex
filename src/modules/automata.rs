@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::clone::Clone;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::str::Chars;
 
@@ -187,7 +187,7 @@ impl Automata {
 }
 
 impl Debug for Automata {
-    fn fmt(&self, f: &mut Formatter) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter) -> Result {
         f.debug_struct("NFA").field("start", &self.start).finish()
     }
 }

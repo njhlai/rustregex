@@ -14,7 +14,7 @@ impl Error {
 impl Debug for Error {
     fn fmt(&self, f: &mut Formatter) -> Result {
         f.debug_struct("RegexError")
-            .field("Internal Error", &self.msg)
+            .field("Error Message", &self.msg)
             .finish()
     }
 }

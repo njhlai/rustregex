@@ -17,11 +17,11 @@ fn main() {
                 println!("full match:         {}", regexp.full_match(&s));
                 println!("greedy search:      {:?}", regexp.greedy_search(&s));
 
-                let res = regexp.search(&s);
+                let res = regexp.global_search(&s);
                 if res.is_empty() {
-                    println!("search:             yielded no results");
+                    println!("global search:      yielded no results");
                 } else {
-                    println!("search:             yielded {} results -> \"{}\"", res.len(), res.join("\",\""));
+                    println!("global search:      yielded {} results -> \"{}\"", res.len(), res.join("\",\""));
                 }
             }
             Err(err) => println!("{err:#?}"),
