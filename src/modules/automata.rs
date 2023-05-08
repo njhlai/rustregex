@@ -136,23 +136,19 @@ impl Automata {
                     let mut ignore_subsequents = 0;
                     for (l, states) in current_states.iter_mut().enumerate() {
                         *states = exhaust_epsilons(states, &anchors);
+                        let achieved_end_state = states.contains(&self.get_end());
 
-                        if states.contains(&self.get_end()) {
-                            if end.map_or(true, |end| end - start < r - l) {
-                                start = l;
-                                end = Some(r);
-                            }
+                        if end.map_or(true, |end| end - start < r - l) && achieved_end_state {
+                            start = l;
+                            end = Some(r);
+                        }
 
-                            if ignore_subsequents == 0 {
-                                results[l] = Some(String::from(&expr[l..r]));
-                                ignore_subsequents = r - l;
-                            } else {
-                                results[l] = None;
-                                ignore_subsequents -= 1;
-                            }
-                        } else if ignore_subsequents > 0 {
+                        if ignore_subsequents > 0 {
                             results[l] = None;
                             ignore_subsequents -= 1;
+                        } else if achieved_end_state {
+                            results[l] = Some(String::from(&expr[l..r]));
+                            ignore_subsequents = r - l;
                         } else if let Some(s) = &results[l] {
                             ignore_subsequents = s.len().saturating_sub(1);
                         }
