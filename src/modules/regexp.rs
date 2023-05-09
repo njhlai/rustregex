@@ -139,6 +139,56 @@ mod tests {
     }
 
     #[test]
+    fn regex_multichar_closure() {
+        let regexp = RegExp::new("(ab)*");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match(""));
+        assert!(regex.full_match("ab"));
+        assert!(regex.full_match("abab"));
+        assert!(!regex.full_match("b"));
+        assert!(!regex.full_match("aba"));
+        assert!(!regex.full_match("abc"));
+
+        assert_eq!(regex.greedy_search(""), Some(String::from("")));
+        assert_eq!(regex.greedy_search("b"), Some(String::from("")));
+        assert_eq!(regex.greedy_search("abab"), Some(String::from("abab")));
+        assert_eq!(regex.greedy_search("abaabab"), Some(String::from("abab")));
+        assert_eq!(regex.greedy_search("abc"), Some(String::from("ab")));
+        assert_eq!(regex.greedy_search("ababaab"), Some(String::from("abab")));
+
+
+        assert_eq!(regex.global_search("aba"), vec!["ab", ""]);
+        assert_eq!(regex.global_search("abab"), vec!["abab"]);
+        assert_eq!(regex.global_search("abaab"), vec!["ab", "ab"]);
+    }
+
+    #[test]
+    fn regex_overlapping_union() {
+        let regexp = RegExp::new("(ab)*|(ba)*");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match(""));
+        assert!(!regex.full_match("aba"));
+        assert!(regex.full_match("abab"));
+        assert!(!regex.full_match("baab"));
+        assert!(!regex.full_match("bab"));
+
+        assert_eq!(regex.greedy_search(""), Some(String::from("")));
+        assert_eq!(regex.greedy_search("aba"), Some(String::from("ab")));
+        assert_eq!(regex.greedy_search("bab"), Some(String::from("ba")));
+        assert_eq!(regex.greedy_search("abba"), Some(String::from("ab")));
+        assert_eq!(regex.greedy_search("ababa"), Some(String::from("abab")));
+
+        assert_eq!(regex.global_search("aba"), vec!["ab", ""]);
+        assert_eq!(regex.global_search("abba"), vec!["ab", "ba"]);
+        assert_eq!(regex.global_search("ababa"), vec!["abab", ""]);
+        assert_eq!(regex.global_search("abbaab"), vec!["ab", "ba", "ab"]);
+    }
+
+    #[test]
     fn regex_start_anchor() {
         let testexpr = "^abc+";
 
