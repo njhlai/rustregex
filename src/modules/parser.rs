@@ -1,18 +1,6 @@
 use super::automata::Automata;
+use super::error::Error;
 use super::state::Anchor;
-
-#[derive(Debug)]
-pub struct Error {
-    pub msg: String,
-}
-
-impl Error {
-    pub fn from(msg: &str) -> Error {
-        Error {
-            msg: String::from(msg),
-        }
-    }
-}
 
 const CONCAT_CHAR: char = 27 as char;
 const POP_ERR: &str = "error popping from stack";
@@ -106,9 +94,7 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
 
 fn add_concat_char(expr: &str) -> Result<String, Error> {
     if let Some(pos) = expr.find(CONCAT_CHAR) {
-        return Err(Error {
-            msg: format!("Illegal character at index {pos}"),
-        });
+        return Err(Error::from(format!("Illegal character at index {pos}").as_str()));
     }
 
     let mut result = String::new();
