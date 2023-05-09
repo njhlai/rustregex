@@ -133,11 +133,10 @@ impl Automata {
 
                     for (match_r, states) in &mut current_states {
                         *states = exhaust_epsilons(states, &anchors);
-                        let achieved_end_state = states.contains(&self.get_end());
 
                         if states.contains(&self.get_end()) {
                             // We have a better match
-                            *match_r = Some(r)
+                            *match_r = Some(r);
                         }
                     }
                 }
