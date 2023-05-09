@@ -115,14 +115,13 @@ impl Automata {
     }
 
     fn search(&self, expr: &str) -> (Option<String>, Vec<String>) {
-        let mut results = vec![];
-        let mut current_states: Vec<Vec<StatePtr>> = vec![];
-        let (mut start, mut end) = (0, None);
+        // First element is the end of the best match, second are the states
+        let mut current_states: Vec<(Option<usize>, Vec<StatePtr>)> = vec![];
 
         for transition in transition_iter(expr) {
             match transition {
                 TransitionItem::Char(c) => {
-                    for states in &mut current_states {
+                    for (_, states) in &mut current_states {
                         *states = states
                             .iter()
                             .filter_map(|s| s.borrow().transition(c))
@@ -130,44 +129,39 @@ impl Automata {
                     }
                 }
                 TransitionItem::Epsilon((r, anchors)) => {
-                    current_states.push(vec![self.start.clone()]);
-                    results.push(None);
+                    current_states.push((None, vec![self.start.clone()]));
 
-                    let mut ignore_subsequents = 0;
-                    for (l, states) in current_states.iter_mut().enumerate() {
+                    for (match_r, states) in &mut current_states {
                         *states = exhaust_epsilons(states, &anchors);
                         let achieved_end_state = states.contains(&self.get_end());
 
-                        if end.map_or(true, |end| end - start < r - l) && achieved_end_state {
-                            start = l;
-                            end = Some(r);
-                        }
-
-                        if ignore_subsequents > 0 {
-                            results[l] = None;
-                            ignore_subsequents -= 1;
-                        } else if achieved_end_state {
-                            results[l] = Some(String::from(&expr[l..r]));
-                            ignore_subsequents = r - l;
-                        } else if let Some(s) = &results[l] {
-                            ignore_subsequents = s.len().saturating_sub(1);
+                        if states.contains(&self.get_end()) {
+                            // We have a better match
+                            *match_r = Some(r)
                         }
                     }
                 }
             }
         }
 
-        let greedy_match = if let Some(end) = end {
-            if end >= start {
-                Some(String::from(&expr[start..end]))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let matches = current_states
+            .iter()
+            .enumerate()
+            .filter_map(|(l, (maybe_r, _))| maybe_r.map(|r| (l, r)));
 
-        (greedy_match, results.into_iter().flatten().collect())
+        let mut results = vec![];
+        let mut results_rightmost = None;
+        for (left, right) in matches {
+            // Check if we overlap anything already in our results
+            if results_rightmost.map_or(true, |rm| rm <= left && rm < right) {
+                results.push(String::from(&expr[left..right]));
+                results_rightmost = Some(right);
+            }
+        }
+
+        // max_by_key will return the last maximal element. Reverse to get the first.
+        let greedy_result = results.iter().rev().max_by_key(|s| s.len()).cloned();
+        (greedy_result, results)
     }
 
     fn get_end(&self) -> StatePtr {
@@ -248,7 +242,11 @@ impl<'a> Iterator for TransitionIter<'a> {
 }
 
 fn transition_iter(expr: &str) -> TransitionIter {
-    TransitionIter { it: expr.chars(), current: None, index: 0 }
+    TransitionIter {
+        it: expr.chars(),
+        current: None,
+        index: 0,
+    }
 }
 
 enum TransitionItem {
@@ -360,7 +358,10 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(
+            nfa.greedy_search("this is a string"),
+            Some(String::from("a"))
+        );
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -395,7 +396,10 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(
+            nfa.greedy_search("this is a string"),
+            Some(String::from("a"))
+        );
 
         assert_eq!(nfa.global_search(""), Vec::<String>::new());
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -427,7 +431,10 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
+        assert_eq!(
+            nfa.greedy_search("this is a string"),
+            Some(String::from("a"))
+        );
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -459,7 +466,10 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
 
-        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
+        assert_eq!(
+            nfa.greedy_search("abaaaaaa"),
+            Some(String::from("abaaaaaa"))
+        );
         assert_eq!(nfa.greedy_search("abab"), Some(String::from("abab")));
         assert_eq!(nfa.greedy_search("abad"), Some(String::from("aba")));
         assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
