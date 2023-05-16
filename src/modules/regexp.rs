@@ -139,6 +139,84 @@ mod tests {
     }
 
     #[test]
+    fn regex_character_classes() {
+        let regexp = RegExp::new(r"\d*");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match(""));
+        assert!(regex.full_match("1234567890"));
+        assert!(!regex.full_match("123d"));
+        assert!(!regex.full_match("d345"));
+
+        assert_eq!(regex.global_search(""), vec![""]);
+        assert_eq!(regex.global_search("1234567890"), vec!["1234567890"]);
+        assert_eq!(regex.global_search("123d"), vec!["123", ""]);
+        assert_eq!(regex.global_search("d345"), vec!["", "345"]);
+
+        let regexp = RegExp::new(r"\D+");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match("a"));
+        assert!(!regex.full_match("1234567890"));
+        assert!(!regex.full_match("123d"));
+        assert!(!regex.full_match("d345"));
+
+        assert_eq!(regex.global_search(""), Vec::<String>::new());
+        assert_eq!(regex.global_search("1234567890"), Vec::<String>::new());
+        assert_eq!(regex.global_search("123d"), vec!["d"]);
+        assert_eq!(regex.global_search("d345"), vec!["d"]);
+
+        let regexp = RegExp::new(r"\w?");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match("a"));
+        assert!(regex.full_match("1"));
+        assert!(!regex.full_match(r"\"));
+        assert!(!regex.full_match("+"));
+
+        assert_eq!(regex.global_search("a"), vec!["a"]);
+        assert_eq!(regex.global_search("1"), vec!["1"]);
+        assert_eq!(regex.global_search(r"\"), vec!["", ""]);
+        assert_eq!(regex.global_search("+"), vec!["", ""]);
+
+        let regexp = RegExp::new(r"\W.");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(!regex.full_match("ab"));
+        assert!(!regex.full_match("12"));
+        assert!(!regex.full_match(r"\"));
+        assert!(regex.full_match("+-"));
+
+        assert_eq!(regex.global_search("ab"), Vec::<String>::new());
+        assert_eq!(regex.global_search("12"), Vec::<String>::new());
+        assert_eq!(regex.global_search(r"\"), Vec::<String>::new());
+        assert_eq!(regex.global_search("+-"), vec!["+-"]);
+
+        let regexp = RegExp::new(r".\s.");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match("a 1"));
+        assert!(regex.full_match(r"\ ?"));
+
+        assert_eq!(regex.global_search("a 1"), vec!["a 1"]);
+        assert_eq!(regex.global_search(r"\ ?"), vec![r"\ ?"]);
+        let regexp = RegExp::new(r".\S.");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(!regex.full_match("a 1"));
+        assert!(regex.full_match(r"\*?"));
+
+        assert_eq!(regex.global_search("a 1"), Vec::<String>::new());
+        assert_eq!(regex.global_search(r"\*?"), vec![r"\*?"]);
+    }
+
+    #[test]
     fn regex_multichar_closure() {
         let regexp = RegExp::new("(ab)*");
         assert!(regexp.is_ok());
