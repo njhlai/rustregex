@@ -326,6 +326,21 @@ mod tests {
     }
 
     #[test]
+    fn regex_escaped_characters() {
+        let regexp = RegExp::new(r"\^\$\|\*\?\+\.\\\n\t\r\f\v\0");
+        assert!(regexp.is_ok());
+        let regex = regexp.unwrap();
+
+        assert!(regex.full_match("^$|*?+.\\\n\t\r\x0c\x0b\0"));
+        assert!(!regex.full_match("^$|*?+.\\\n\t\r\x0c\x0b"));
+
+        assert_eq!(
+            regex.greedy_search("Ignore this. ^$|*?+.\\\n\t\r\x0c\x0b\0"),
+            Some(String::from("^$|*?+.\\\n\t\r\x0c\x0b\0"))
+        );
+    }
+
+    #[test]
     fn regex_anchors() {
         let testexpr = "^a*$";
 

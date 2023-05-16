@@ -5,6 +5,7 @@ use super::state::Anchor;
 const CONCAT_CHAR: char = 27 as char;
 const POP_ERR: &str = "error popping from stack";
 
+
 pub fn parse(expr: &str) -> Result<Automata, Error> {
     let postfix = to_postfix(expr)?;
     let mut automata_stack = Vec::<Automata>::new();
@@ -38,24 +39,23 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             }
             '.' => automata_stack.push(Automata::from_lambda(|_| true)),
             '\\' => {
-                if let Some(d) = it.next() {
-                    match d {
-                        'b' => automata_stack.push(Automata::from_anchor(Anchor::WordBoundary)),
-                        'd' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_digit())),
-                        'D' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_digit())),
-                        'w' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_alphanumeric())),
-                        'W' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_alphanumeric())),
-                        's' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_whitespace())),
-                        'S' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_whitespace())),
-                        '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' => automata_stack.push(Automata::from_token(d)),
-                        't' => automata_stack.push(Automata::from_token('\t')),
-                        'n' => automata_stack.push(Automata::from_token('\n')),
-                        'r' => automata_stack.push(Automata::from_token('\r')),
-                        'v' => automata_stack.push(Automata::from_token('\x0b')),
-                        'f' => automata_stack.push(Automata::from_token('\x0c')),
-                        '0' => automata_stack.push(Automata::from_token('\0')),
-                        _ => return Err(Error::from(format!("Unknown escaped character found: {d}").as_str())),
-                    }
+                let d = it.next().unwrap();
+                match d {
+                    'b' => automata_stack.push(Automata::from_anchor(Anchor::WordBoundary)),
+                    'd' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_digit())),
+                    'D' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_digit())),
+                    'w' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_alphanumeric())),
+                    'W' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_alphanumeric())),
+                    's' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_whitespace())),
+                    'S' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_whitespace())),
+                    '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' => automata_stack.push(Automata::from_token(d)),
+                    't' => automata_stack.push(Automata::from_token('\t')),
+                    'n' => automata_stack.push(Automata::from_token('\n')),
+                    'r' => automata_stack.push(Automata::from_token('\r')),
+                    'v' => automata_stack.push(Automata::from_token('\x0b')),
+                    'f' => automata_stack.push(Automata::from_token('\x0c')),
+                    '0' => automata_stack.push(Automata::from_token('\0')),
+                    _ => return Err(Error::from(format!("Unknown escape sequence \\{d}").as_str())),
                 }
             }
             _ => automata_stack.push(Automata::from_token(c)),
@@ -130,12 +130,14 @@ fn add_concat_char(expr: &str) -> Result<String, Error> {
         result.push(first);
         let mut prev = first;
 
+        let mut prev_was_escaped = false;
         for c in it {
-            if !matches!(prev, '(' | '|' | '\\') && !matches!(c, ')' | '|' | '*' | '?' | '+') {
+            if (prev_was_escaped || !matches!(prev, '(' | '|' | '\\')) && !matches!(c, ')' | '|' | '*' | '?' | '+') {
                 result.push(CONCAT_CHAR);
             }
 
             result.push(c);
+            prev_was_escaped = !prev_was_escaped && prev == '\\';
             prev = c;
         }
     }
