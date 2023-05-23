@@ -1,3 +1,5 @@
+use std::str::Chars;
+
 use super::automata::Automata;
 use super::error::Error;
 use super::state::Anchor;
@@ -71,7 +73,7 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
 }
 
 fn to_postfix(expr: &str) -> Result<String, Error> {
-    let modified_expr = add_concat_char(expr)?;
+    let modified_expr = modify_expression(expr)?;
     let mut postfix = String::new();
     let mut operator_stack = Vec::<char>::new();
     let precedence = |c| match c {
@@ -125,6 +127,10 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
     Ok(postfix)
 }
 
+fn modify_expression(expr: &str) -> Result<String, Error> {
+    add_concat_char(expand_quantifiers(expr)?.as_str())
+}
+
 fn add_concat_char(expr: &str) -> Result<String, Error> {
     if let Some(pos) = expr.find(CONCAT_CHAR) {
         return Err(Error::from(format!("Illegal character at index {pos}").as_str()));
@@ -149,4 +155,178 @@ fn add_concat_char(expr: &str) -> Result<String, Error> {
     }
 
     Ok(result)
+}
+
+fn expand_quantifiers(expr: &str) -> Result<String, Error> {
+    let mut result_stack = Vec::<String>::new();
+
+    let mut it = expr.chars();
+    while let Some(c) = it.next() {
+        match c {
+            '\\' => {
+                let mut curr = String::from(c);
+                curr.push(
+                    it.next()
+                        .ok_or(Error::from("\\ does not escape anything"))?,
+                );
+
+                result_stack.push(curr);
+            }
+            ')' => {
+                let pos = result_stack
+                    .iter()
+                    .rev()
+                    .position(|x| x == "(")
+                    .ok_or_else(|| Error::from("Unmatched marking paranthesis ')'"))?;
+                let mut curr = result_stack
+                    .drain(result_stack.len().saturating_sub(pos + 1)..)
+                    .collect::<String>();
+                curr.push(c);
+
+                result_stack.push(curr);
+            }
+            '{' => {
+                if let Some(word) = result_stack.pop() {
+                    if matches!(word.as_str(), "(" | "|" | "*" | "?" | "+") {
+                        return Err(Error::from("Invalid preceeding regular expression prior to quantifier expression"));
+                    }
+
+                    let (min, max) = read_quantifier(&mut it)?;
+                    let mut curr_word = String::new();
+
+                    for _ in 0..min {
+                        curr_word.push_str(word.as_str());
+                    }
+
+                    if let Some(max) = max {
+                        let maybe = format!("{word}?");
+                        for _ in 0..max.saturating_sub(min) {
+                            curr_word.push_str(maybe.as_str());
+                        }
+                    } else {
+                        curr_word.push('+');
+                    }
+
+                    result_stack.push(curr_word);
+                }
+            }
+            _ => result_stack.push(String::from(c)),
+        }
+    }
+
+    Ok(result_stack.join(""))
+}
+
+fn read_quantifier(it: &mut Chars) -> Result<(usize, Option<usize>), Error> {
+    fn parse_to_usize(num: usize, c: char) -> Result<usize, Error> {
+        let mut result = num * 10;
+        result += usize::try_from(
+            c.to_digit(10)
+                .ok_or_else(|| Error::from("Non-numeric character in quantifier range"))?,
+        )
+        .map_err(|e| Error::from(&e.to_string()))?;
+
+        Ok(result)
+    }
+
+    let (mut min, mut max) = (0, None);
+
+    for c in it.by_ref() {
+        if c == '}' {
+            return Ok((min, Some(min)));
+        } else if c == ',' {
+            break;
+        }
+
+        min = parse_to_usize(min, c)?;
+    }
+
+    for c in it.by_ref() {
+        if c == '}' {
+            break;
+        }
+
+        max = Some(parse_to_usize(max.unwrap_or_default(), c)?);
+    }
+
+    Ok((min, max))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parser_read_quantifier_normal() {
+        let mut testquantifier = r"30,5935}a sdf\\ad\(f}".chars();
+
+        assert_eq!(Ok((30, Some(5935))), read_quantifier(&mut testquantifier))
+    }
+
+    #[test]
+    fn parser_read_quantifier_no_max() {
+        let mut testquantifier = r"123,}a sdf\\ad\(f}".chars();
+
+        assert_eq!(Ok((123, None)), read_quantifier(&mut testquantifier))
+    }
+
+    #[test]
+    fn parser_read_quantifier_no_min() {
+        let mut testquantifier = r",45}a sdf\\ad\(f}".chars();
+
+        assert_eq!(Ok((0, Some(45))), read_quantifier(&mut testquantifier))
+    }
+
+    #[test]
+    fn parser_read_quantifier_specific() {
+        let mut testquantifier = r"7890}a sdf\\ad\(f}".chars();
+
+        assert_eq!(Ok((7890, Some(7890))), read_quantifier(&mut testquantifier))
+    }
+
+    #[test]
+    fn parser_expand_quantifier_simple() {
+        let testexpr = "a{3,6}";
+        let expanded_testexpr = expand_quantifiers(testexpr);
+
+        assert!(expanded_testexpr.is_ok());
+        assert_eq!(String::from("aaaa?a?a?"), expanded_testexpr.unwrap());
+    }
+
+    #[test]
+    fn parser_expand_quantifier_realistic() {
+        let testexpr = r"@\w+\.\w{2,3}(\.\w{2,})?";
+        let expanded_testexpr = expand_quantifiers(testexpr);
+
+        assert!(expanded_testexpr.is_ok());
+        assert_eq!(String::from(r"@\w+\.\w\w\w?(\.\w\w+)?"), expanded_testexpr.unwrap());
+    }
+
+    #[test]
+    fn parser_expand_quantifier_nested_brackets() {
+        let testexpr = "((x{2,}y){3,4}z{5}){,3}";
+        let expanded_testexpr = expand_quantifiers(testexpr);
+
+        assert!(expanded_testexpr.is_ok());
+        assert_eq!(
+            String::from(
+                "((xx+y)(xx+y)(xx+y)(xx+y)?zzzzz)?((xx+y)(xx+y)(xx+y)(xx+y)?zzzzz)?((xx+y)(xx+y)(xx+y)(xx+y)?zzzzz)?"
+            ),
+            expanded_testexpr.unwrap()
+        );
+    }
+
+    #[test]
+    fn parser_expand_quantifier_escaped_brackets() {
+        let testexpr = r"(\{\(x){2,5}\}";
+        let expanded_testexpr = expand_quantifiers(testexpr);
+
+        assert!(expanded_testexpr.is_ok());
+        assert_eq!(
+            String::from(
+                r"(\{\(x)(\{\(x)(\{\(x)?(\{\(x)?(\{\(x)?\}"
+            ),
+            expanded_testexpr.unwrap()
+        );
+    }
 }
