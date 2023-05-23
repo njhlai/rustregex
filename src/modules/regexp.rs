@@ -236,7 +236,6 @@ mod tests {
         assert_eq!(regex.greedy_search("abc"), Some(String::from("ab")));
         assert_eq!(regex.greedy_search("ababaab"), Some(String::from("abab")));
 
-
         assert_eq!(regex.global_search("aba"), vec!["ab", ""]);
         assert_eq!(regex.global_search("abab"), vec!["abab"]);
         assert_eq!(regex.global_search("abaab"), vec!["ab", "ab"]);
@@ -327,16 +326,16 @@ mod tests {
 
     #[test]
     fn regex_escaped_characters() {
-        let regexp = RegExp::new(r"\^\$\|\*\?\+\.\\\n\t\r\f\v\0");
+        let regexp = RegExp::new(r"\^\$\|\*\?\+\.\(\)\{\}\\\n\t\r\f\v\0");
         assert!(regexp.is_ok());
         let regex = regexp.unwrap();
 
-        assert!(regex.full_match("^$|*?+.\\\n\t\r\x0c\x0b\0"));
-        assert!(!regex.full_match("^$|*?+.\\\n\t\r\x0c\x0b"));
+        assert!(regex.full_match("^$|*?+.(){}\\\n\t\r\x0c\x0b\0"));
+        assert!(!regex.full_match("^$|*?+.(){}\\\n\t\r\x0c\x0b"));
 
         assert_eq!(
-            regex.greedy_search("Ignore this. ^$|*?+.\\\n\t\r\x0c\x0b\0"),
-            Some(String::from("^$|*?+.\\\n\t\r\x0c\x0b\0"))
+            regex.greedy_search("Ignore this. ^$|*?+.(){}\\\n\t\r\x0c\x0b\0"),
+            Some(String::from("^$|*?+.(){}\\\n\t\r\x0c\x0b\0"))
         );
     }
 

@@ -5,7 +5,6 @@ use super::state::Anchor;
 const CONCAT_CHAR: char = 27 as char;
 const POP_ERR: &str = "error popping from stack";
 
-
 pub fn parse(expr: &str) -> Result<Automata, Error> {
     let postfix = to_postfix(expr)?;
     let mut automata_stack = Vec::<Automata>::new();
@@ -40,23 +39,23 @@ pub fn parse(expr: &str) -> Result<Automata, Error> {
             '.' => automata_stack.push(Automata::from_lambda(|_| true)),
             '\\' => {
                 let d = it.next().unwrap();
-                match d {
-                    'b' => automata_stack.push(Automata::from_anchor(Anchor::WordBoundary)),
-                    'd' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_digit())),
-                    'D' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_digit())),
-                    'w' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_alphanumeric())),
-                    'W' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_alphanumeric())),
-                    's' => automata_stack.push(Automata::from_lambda(|x| x.is_ascii_whitespace())),
-                    'S' => automata_stack.push(Automata::from_lambda(|x| !x.is_ascii_whitespace())),
-                    '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' => automata_stack.push(Automata::from_token(d)),
-                    't' => automata_stack.push(Automata::from_token('\t')),
-                    'n' => automata_stack.push(Automata::from_token('\n')),
-                    'r' => automata_stack.push(Automata::from_token('\r')),
-                    'v' => automata_stack.push(Automata::from_token('\x0b')),
-                    'f' => automata_stack.push(Automata::from_token('\x0c')),
-                    '0' => automata_stack.push(Automata::from_token('\0')),
+                automata_stack.push(match d {
+                    'b' => Automata::from_anchor(Anchor::WordBoundary),
+                    'd' => Automata::from_lambda(|x| x.is_ascii_digit()),
+                    'D' => Automata::from_lambda(|x| !x.is_ascii_digit()),
+                    'w' => Automata::from_lambda(|x| x.is_ascii_alphanumeric()),
+                    'W' => Automata::from_lambda(|x| !x.is_ascii_alphanumeric()),
+                    's' => Automata::from_lambda(|x| x.is_ascii_whitespace()),
+                    'S' => Automata::from_lambda(|x| !x.is_ascii_whitespace()),
+                    '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '(' | ')' | '{' | '}' => Automata::from_token(d),
+                    't' => Automata::from_token('\t'),
+                    'n' => Automata::from_token('\n'),
+                    'r' => Automata::from_token('\r'),
+                    'v' => Automata::from_token('\x0b'),
+                    'f' => Automata::from_token('\x0c'),
+                    '0' => Automata::from_token('\0'),
                     _ => return Err(Error::from(format!("Unknown escape sequence \\{d}").as_str())),
-                }
+                });
             }
             _ => automata_stack.push(Automata::from_token(c)),
         }
@@ -86,7 +85,10 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
         match c {
             '\\' => {
                 postfix.push(c);
-                postfix.push(it.next().ok_or(Error::from("\\ does not escape anything"))?);
+                postfix.push(
+                    it.next()
+                        .ok_or(Error::from("\\ does not escape anything"))?,
+                );
             }
             '|' | CONCAT_CHAR | '*' | '?' | '+' => {
                 let curr_precedence = precedence(c);
@@ -113,6 +115,10 @@ fn to_postfix(expr: &str) -> Result<String, Error> {
     }
 
     while let Some(op) = operator_stack.pop() {
+        if op == '(' {
+            return Err(Error::from("Unmatched marking paranthesis '('"));
+        }
+
         postfix.push(op);
     }
 
