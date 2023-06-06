@@ -1,9 +1,25 @@
 mod modules;
+use modules::language;
 use modules::regexp::RegExp;
 
 use std::io::{self, Write};
 
 fn main() {
+    let mut expr = String::from(r"^@\w+\.\b\{\w{2,3}(.\w{2,})?|c?[a-z\w\s]+\1");
+    println!("{:#?}", language::regex().parse(&mut expr).unwrap());
+    println!("{expr:#?}");
+    // println!("{:#?}", subexpression_item().parse(&mut expr));
+    // println!("{expr:#?}");
+    // println!("{:#?}", quantifier().parse(&mut expr));
+    // println!("{expr:#?}");
+    // println!("{:#?}", match_item().parse(&mut expr));
+    // println!("{expr:#?}");
+    // println!("{:#?}", match_item().parse(&mut expr));
+    // println!("{expr:#?}");
+    // expr = String::from(r"(ab|d)?c+z[\wa-z0-9z]");
+    // println!("{:#?}", expression().parse(&mut expr));
+    // println!("{expr:#?}");
+
     // something to get rid of unused code warnings
     loop {
         let regexp_input = get_user_input("regular expression: ");

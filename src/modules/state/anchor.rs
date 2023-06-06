@@ -5,11 +5,12 @@ use std::{ptr, slice};
 
 use super::State;
 
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum Anchor {
     Start,
     End,
     WordBoundary,
+    NotWordBoundary,
 }
 
 pub struct AnchorState {
