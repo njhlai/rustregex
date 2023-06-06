@@ -10,7 +10,6 @@ pub enum Anchor {
     Start,
     End,
     WordBoundary,
-    NotWordBoundary,
 }
 
 pub struct AnchorState {

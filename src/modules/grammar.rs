@@ -7,8 +7,6 @@ use super::monadic_parser::MonadicParser;
 pub type Grammar<S> = MonadicParser<S>;
 
 impl<S: 'static> Grammar<S> {
-    // pub fn compile(spec: Spec<T>) -> Self {};
-
     /// Compiles specification `spec` of a formal grammar to the associated [`Grammar`].
     ///
     /// A specification of a formal grammar is a function `fn() -> Grammar<S>` which returns (the [`MonadicParser`] defining) the rules of the formal grammar.
@@ -37,8 +35,8 @@ type Expression = Vec<Subexpression>;
 fn expression() -> MonadicParser<Expression> {
     subexpression()
         .chain(character('|').chain(subexpression()).repeat())
-        .map(|(subexp, maybe)| {
-            let expression = maybe
+        .map(|(subexp, remaining)| {
+            let expression = remaining
                 .into_iter()
                 .fold(vec![subexp], |mut acc, (_, nextsubexp)| {
                     acc.push(nextsubexp);
@@ -68,7 +66,7 @@ pub enum SubexpressionItem {
     /// `Anchor ::= '^' | '$' | '\b' | '\B'`
     Anchor(Anchor),
     /// `Backreference ::= '\' Integer`
-    Backreference(usize),
+    Backreference(Backreference),
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`SubexpressionItem`].
@@ -161,7 +159,7 @@ pub enum CharacterGroupItem {
     /// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S`
     CharacterClass(CharacterClass),
     /// `CharacterRange ::= Char '-' Char`
-    CharacterRange((char, Option<char>)),
+    CharacterRange(CharacterRange),
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroupItem`].
@@ -272,7 +270,7 @@ pub enum Quantifier {
     /// `?`
     ZeroOrOne,
     /// `RangeQuantifier ::= '{' RangeQuantifierLowerBound ( ',' RangeQuantifierUpperBound? )? '}'`
-    Range((usize, Option<usize>)),
+    Range(RangeQuantifier),
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Quantifier`].
@@ -285,14 +283,14 @@ fn quantifier() -> MonadicParser<Quantifier> {
     ]
 }
 
-/// `RangeQuantifier ::= '{' RangeQuantifierLowerBound ( ',' RangeQuantifierUpperBound? )? '}'`
+/// `RangeQuantifier ::= '{' RangeQuantifierLowerBound? ( ',' RangeQuantifierUpperBound? )? '}'`
 type RangeQuantifier = (usize, Option<usize>);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`RangeQuantifier`].
 fn range_quantifier() -> MonadicParser<RangeQuantifier> {
     character('{')
-        .chain(number())
-        .map(|(_, l)| Some(l))
+        .chain(number().optional())
+        .map(|(_, l)| l.or(Some(0)))
         .chain(character(',').chain(number().optional()).optional())
         .map(|(l, maybe)| {
             let maybe_r = maybe.map_or_else(|| Some(l), |(_, r)| r);

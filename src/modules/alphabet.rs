@@ -41,5 +41,7 @@ pub fn number() -> MonadicParser<usize> {
 
 /// Returns a [`MonadicParser`] which parses escaped character satisfying `predicate`.
 pub fn escaped_character(predicate: fn(&char) -> bool) -> MonadicParser<char> {
-    character('\\').chain(init().filter(predicate)).map(|(_, c)| Some(c))
+    character('\\')
+        .chain(init().filter(predicate))
+        .map(|(_, c)| Some(c))
 }

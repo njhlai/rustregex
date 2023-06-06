@@ -1,15 +1,15 @@
-type ParserFunction<T> = dyn Fn(& str) -> Option<(T, &str)>;
+type ParserFunction<T> = dyn Fn(&str) -> Option<(T, &str)>;
 
 pub struct MonadicParser<T> {
     fcn: Box<ParserFunction<T>>,
 }
 
 impl<T: 'static> MonadicParser<T> {
-    pub fn new<F: Fn(& str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
+    pub fn new<F: Fn(&str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser::unit(f)
     }
 
-    fn unit<F: Fn(& str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
+    fn unit<F: Fn(&str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser { fcn: Box::new(f) }
     }
 
@@ -48,8 +48,6 @@ impl<T: 'static> MonadicParser<T> {
             while let Some((t, rst)) = self.parse(current_expr) {
                 res.push(t);
                 current_expr = rst;
-                // *expr = expr.split_off(1);
-                // println!("after: {expr}");
             }
 
             Some((res, current_expr))
@@ -57,13 +55,15 @@ impl<T: 'static> MonadicParser<T> {
     }
 
     pub fn optional(self) -> MonadicParser<Option<T>> {
-        MonadicParser::unit(move |expr| {
-            if let Some((t, rst)) = self.parse(expr) {
-                Some((Some(t), rst))
-            } else {
-                Some((None, expr))
-            }
-        })
+        MonadicParser::unit(
+            move |expr| {
+                if let Some((t, rst)) = self.parse(expr) {
+                    Some((Some(t), rst))
+                } else {
+                    Some((None, expr))
+                }
+            },
+        )
     }
 
     pub fn lazy<F: Fn() -> MonadicParser<T> + 'static>(closure: F) -> Self {
