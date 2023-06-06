@@ -21,17 +21,10 @@ impl<S: 'static> Language<S> {
     }
 
     /// Parses `expr` using [`Language`]'s grammar.
-    pub fn parse(&self, expr: &mut String) -> Option<S> {
-        self.grammar.parse(expr)
+    pub fn parse(&self, expr: & str) -> Option<S> {
+        self.grammar.parse(expr).map(|(s, _)| s)
     }
 
-    pub fn _parse(&self, expr: &mut String) -> Result<Automata, Error> {
-        let syntax_tree = self.grammar
-            .parse(expr)
-            .ok_or_else(|| Error::from("Given expression returns no syntax tree"))?;
-
-        Ok(Automata::from_lambda(|_| true))
-    }
 }
 
 /// Returns the [`Language`] defining the Regex language.

@@ -186,7 +186,7 @@ fn character_range() -> MonadicParser<CharacterRange> {
         })
 }
 
-/// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S`
+/// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S'`
 #[derive(Debug)]
 pub enum CharacterClass {
     /// `\w`

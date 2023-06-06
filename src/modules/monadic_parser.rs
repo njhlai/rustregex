@@ -1,33 +1,36 @@
-type ParserFunction<T> = dyn Fn(&mut String) -> Option<T>;
+type ParserFunction<T> = dyn Fn(& str) -> Option<(T, &str)>;
 
 pub struct MonadicParser<T> {
     fcn: Box<ParserFunction<T>>,
 }
 
 impl<T: 'static> MonadicParser<T> {
-    pub fn new<F: Fn(&mut String) -> Option<T> + 'static>(f: F) -> Self {
+    pub fn new<F: Fn(& str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser::unit(f)
     }
 
-    fn unit<F: Fn(&mut String) -> Option<T> + 'static>(f: F) -> Self {
+    fn unit<F: Fn(& str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser { fcn: Box::new(f) }
     }
 
-    pub fn parse(&self, expr: &mut String) -> Option<T> {
+    pub fn parse<'a>(&self, expr: &'a str) -> Option<(T, &'a str)> {
         (self.fcn)(expr)
     }
 
     pub fn chain<U: 'static>(self, other: MonadicParser<U>) -> MonadicParser<(T, U)> {
         MonadicParser::unit(move |expr| {
-            let t = self.parse(expr)?;
-            let u = other.parse(expr)?;
+            let (t, rst_t) = self.parse(expr)?;
+            let (u, rst_u) = other.parse(rst_t)?;
 
-            Some((t, u))
+            Some(((t, u), rst_u))
         })
     }
 
     pub fn map<U: 'static, F: Fn(T) -> Option<U> + 'static>(self, transform: F) -> MonadicParser<U> {
-        MonadicParser::unit(move |expr| transform(self.parse(expr)?))
+        MonadicParser::unit(move |expr| {
+            let (t, rst) = self.parse(expr)?;
+            Some((transform(t)?, rst))
+        })
     }
 
     pub fn filter<F: Fn(&T) -> bool + 'static>(self, predicate: F) -> Self {
@@ -38,40 +41,27 @@ impl<T: 'static> MonadicParser<T> {
         self.filter(move |t| !predicate(t))
     }
 
-    pub fn one(self) -> Self {
-        MonadicParser::unit(move |expr| {
-            if let Some(res) = self.parse(expr) {
-                *expr = expr.split_off(1);
-
-                Some(res)
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn repeat(self) -> MonadicParser<Vec<T>> {
         MonadicParser::unit(move |expr| {
+            let mut current_expr = expr;
             let mut res = vec![];
-            while let Some(t) = self.parse(expr) {
+            while let Some((t, rst)) = self.parse(current_expr) {
                 res.push(t);
+                current_expr = rst;
                 // *expr = expr.split_off(1);
                 // println!("after: {expr}");
             }
 
-            Some(res)
+            Some((res, current_expr))
         })
     }
 
     pub fn optional(self) -> MonadicParser<Option<T>> {
         MonadicParser::unit(move |expr| {
-            let prev = expr.clone();
-
-            if let Some(t) = self.parse(expr) {
-                Some(Some(t))
+            if let Some((t, rst)) = self.parse(expr) {
+                Some((Some(t), rst))
             } else {
-                *expr = prev;
-                Some(None)
+                Some((None, expr))
             }
         })
     }
