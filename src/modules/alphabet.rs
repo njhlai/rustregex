@@ -27,16 +27,8 @@ pub fn digit() -> MonadicParser<u32> {
 
 /// Returns a [`MonadicParser`] which parses numbers.
 pub fn number() -> MonadicParser<u32> {
-    digit().repeat().filter(|v| !v.is_empty()).map(|v| {
-        let mut result = 0;
-
-        for d in v {
-            result *= 10;
-            result += d;
-        }
-
-        Some(result)
-    })
+    digit().one_or_more()
+        .map(|v| Some(v.iter().fold(0, |acc, d| acc * 10 + d)))
 }
 
 /// Returns a [`MonadicParser`] which parses escaped character satisfying `predicate`.
