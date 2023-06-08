@@ -1,13 +1,13 @@
 use std::ops;
 
-type ParserFunction<T> = dyn Fn(& str) -> Option<(T, &str)>;
+type ParserFunction<T> = dyn Fn(&str) -> Option<(T, &str)>;
 
 pub struct MonadicParser<T> {
     fcn: Box<ParserFunction<T>>,
 }
 
 impl<T: 'static> MonadicParser<T> {
-    pub fn new<F: Fn(& str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
+    pub fn new<F: Fn(&str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser { fcn: Box::new(f) }
     }
 

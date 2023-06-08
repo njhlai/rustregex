@@ -9,8 +9,6 @@ use super::monadic_parser::MonadicParser;
 pub type Grammar<S> = MonadicParser<S>;
 
 impl<S: 'static> Grammar<S> {
-    // pub fn compile(spec: Spec<T>) -> Self {};
-
     /// Compiles specification `spec` of a formal grammar to the associated [`Grammar`].
     ///
     /// A specification of a formal grammar is a function `fn() -> Grammar<S>` which returns (the [`MonadicParser`] defining) the rules of the formal grammar.
