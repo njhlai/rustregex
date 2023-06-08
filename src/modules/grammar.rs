@@ -279,12 +279,12 @@ fn anchor() -> MonadicParser<Anchor> {
     ]
 }
 
-/// `Backreference ::= '\' Integer`
+/// `Backreference ::= '\' 1..9`
 type Backreference = u32;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Backreference`].
 fn backreference() -> MonadicParser<Backreference> {
-    escaped().map(|c| c.to_digit(10))
+    escaped().map(|c| c.to_digit(10)).exclude(|&n| n == 0)
 }
 
 /// `Quantifier ::= '*' | '+' | '?' | RangeQuantifier`
