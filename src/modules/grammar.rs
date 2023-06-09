@@ -35,7 +35,7 @@ pub fn regex() -> Grammar<Regex> {
 
 
 /// `Expression ::= Subexpression ('|' Subexpression)*`
-type Expression = Vec<SubExpression>;
+pub type Expression = Vec<SubExpression>;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Expression`].
 fn expression() -> MonadicParser<Expression> {
@@ -47,7 +47,7 @@ fn expression() -> MonadicParser<Expression> {
 
 
 /// `Subexpression ::= BasicExpression+`
-type SubExpression = Vec<BasicExpression>;
+pub type SubExpression = Vec<BasicExpression>;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Subexpression`].
 fn subexpression() -> MonadicParser<SubExpression> {
@@ -74,7 +74,7 @@ fn basic_expression() -> MonadicParser<BasicExpression> {
 
 /// `Quantified ::= Quantifiable Quantifier?`
 #[derive(Debug)]
-struct Quantified {
+pub struct Quantified {
 	quantified: Quantifiable,
 	quantifier: Option<Quantifier>,
 }
@@ -87,7 +87,7 @@ fn quantified() -> MonadicParser<Quantified> {
 
 /// `Quantifiable ::= Group | Match | Backreference`
 #[derive(Debug)]
-enum Quantifiable {
+pub enum Quantifiable {
     /// `Group ::= '(' Expression ')'`
     Group(Group),
     /// `Match ::= MatchItem Quantifier?`
@@ -106,15 +106,25 @@ fn quantifiable() -> MonadicParser<Quantifiable> {
 
 
 /// `Group ::= '(' Expression ')'`
-type Group = Expression;
+pub type Group = Expression;
+// /// `Group ::= '(' ":?"? Expression ')'
+// pub struct Group {
+//     non_capturing: bool,
+//     expr: Box<Expression>,
+// }
 // type Group = (bool, Expression);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Group`].
 fn group() -> MonadicParser<Group> {
     character('(') >> MonadicParser::lazy(expression) << character(')')
-    // (character('(') >> string(":?").optional() & expression() << character(')'))
-    //     .map(|(non_capturing, expr)| Some((non_capturing.is_some(), expr)))
-
+    // (character('(') >> string(":?").optional() & expression() << character(')')).map(
+    //     |(non_capturing, expr)| {
+    //         Some(Group {
+    //             non_capturing: non_capturing.is_some(),
+    //             expr: Box::new(expr),
+    //         })
+    //     },
+    // )
 }
 
 /// `Match ::= MatchItem`
@@ -142,14 +152,18 @@ fn r#match() -> MonadicParser<Match> {
 
 
 /// `CharacterGroup ::= '['  CharacterGroupItem+ ']'`
-type CharacterGroup = Vec<CharacterGroupItem>;
-// type CharacterGroup = (bool, Vec<CharacterGroupItem>);
+pub type CharacterGroup = Vec<CharacterGroupItem>;
+// /// `CharacterGroup ::= '[' ^? CharacterGroupItem+ ']'`
+// pub struct CharacterGroup {
+//     inverted: bool,
+//     items: Vec<CharacterGroupItem>,
+// }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroup`].
 fn character_group() -> MonadicParser<CharacterGroup> {
     character('[') >> character_group_item().one_or_more() << character(']')
     // (character('[') >> character('^').optional() & character_group_item().oneOrMore() << character(']'))
-    //     .map(|(invert, items)| Some((invert.is_some(), items)))
+    //     .map(|(inverted, items)| Some(CharacterGroup{inverted:inverted.is_some(), items)))
 }
 
 
@@ -175,7 +189,7 @@ fn character_group_item() -> MonadicParser<CharacterGroupItem> {
 
 
 /// `CharacterRange ::= Char '-' Char`
-type CharacterRange = (char, char);
+pub type CharacterRange = (char, char);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroupItem`].
 fn character_range() -> MonadicParser<CharacterRange> {
@@ -280,7 +294,7 @@ fn anchor() -> MonadicParser<Anchor> {
 }
 
 /// `Backreference ::= '\' 1..9`
-type Backreference = u32;
+pub type Backreference = u32;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Backreference`].
 fn backreference() -> MonadicParser<Backreference> {
@@ -311,7 +325,7 @@ fn quantifier() -> MonadicParser<Quantifier> {
 }
 
 /// `RangeQuantifier ::= '{' RangeQuantifierLowerBound ( ',' RangeQuantifierUpperBound? )? '}'`
-type RangeQuantifier = (u32, Option<u32>);
+pub type RangeQuantifier = (u32, Option<u32>);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`RangeQuantifier`].
 fn range_quantifier() -> MonadicParser<RangeQuantifier> {
