@@ -35,3 +35,7 @@ pub fn number() -> MonadicParser<u32> {
 pub fn escaped() -> MonadicParser<char> {
     character('\\') >> any()
 }
+
+pub fn end() -> MonadicParser<()> {
+    MonadicParser::new(|expr| if expr.is_empty() { Some(((), expr)) } else { None })
+}

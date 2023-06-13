@@ -20,17 +20,11 @@ impl<S: 'static> Grammar<S> {
 // Specification of grammar rules for Regex
 
 /// `Regex ::= '^'? Expression`
-#[derive(Debug)]
-pub struct Regex {
-    startAnchor: bool,
-    expr: Expression,
-}
+pub type Regex = Expression;
 
 /// Returns the [`Grammar`] defining Regex's grammar.
 pub fn regex() -> Grammar<Regex> {
-    (character('^').optional() & expression())
-        .map(|(start, expr)| Some(Regex{ startAnchor: start.is_some(), expr }))
-
+    expression() << end()
 }
 
 
@@ -117,10 +111,10 @@ pub type Group = Expression;
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Group`].
 fn group() -> MonadicParser<Group> {
     character('(') >> MonadicParser::lazy(expression) << character(')')
-    // (character('(') >> string(":?").optional() & expression() << character(')')).map(
+    // (character('(') >> string(":?").exists() & expression() << character(')')).map(
     //     |(non_capturing, expr)| {
     //         Some(Group {
-    //             non_capturing: non_capturing.is_some(),
+    //             non_capturing: non_capturing,
     //             expr: Box::new(expr),
     //         })
     //     },
@@ -162,8 +156,8 @@ pub type CharacterGroup = Vec<CharacterGroupItem>;
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroup`].
 fn character_group() -> MonadicParser<CharacterGroup> {
     character('[') >> character_group_item().one_or_more() << character(']')
-    // (character('[') >> character('^').optional() & character_group_item().oneOrMore() << character(']'))
-    //     .map(|(inverted, items)| Some(CharacterGroup{inverted:inverted.is_some(), items)))
+    // (character('[') >> character('^').exists() & character_group_item().oneOrMore() << character(']'))
+    //     .map(|(inverted, items)| Some(CharacterGroup{inverted:inverted, items}))
 }
 
 
@@ -284,6 +278,7 @@ pub enum Anchor {
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Anchor`].
 fn anchor() -> MonadicParser<Anchor> {
     union![
+        character('^').map(|_| Some(Anchor::Start)),
         escaped().map(|c| match c {
             'b' => Some(Anchor::WordBoundary),
             'B' => Some(Anchor::NotWordBoundary),

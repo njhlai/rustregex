@@ -66,6 +66,10 @@ impl<T: 'static> MonadicParser<T> {
         })
     }
 
+    pub fn exists(self) -> MonadicParser<bool> {
+        self.optional().map(|x| Some(x.is_some()))
+    }
+
     pub fn lazy<F: Fn() -> MonadicParser<T> + 'static>(closure: F) -> Self {
         MonadicParser::new(move |expr| closure().parse(expr))
     }
