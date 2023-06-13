@@ -1,5 +1,3 @@
-use crate::union;
-
 use super::monadic_parser::MonadicParser;
 
 // Parsers defining the alphabet of Regex

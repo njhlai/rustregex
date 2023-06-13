@@ -2,7 +2,7 @@ use std::iter;
 
 use crate::union;
 
-use super::alphabet::*;
+use super::alphabet::{any, character, end, escaped, number};
 use super::monadic_parser::MonadicParser;
 
 /// A [`MonadicParser`] defining the rules of a formal grammar
