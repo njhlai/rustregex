@@ -57,13 +57,15 @@ impl<T: 'static> MonadicParser<T> {
     }
 
     pub fn optional(self) -> MonadicParser<Option<T>> {
-        MonadicParser::new(move |expr| {
-            if let Some((t, rst)) = self.parse(expr) {
-                Some((Some(t), rst))
-            } else {
-                Some((None, expr))
-            }
-        })
+        MonadicParser::new(
+            move |expr| {
+                if let Some((t, rst)) = self.parse(expr) {
+                    Some((Some(t), rst))
+                } else {
+                    Some((None, expr))
+                }
+            },
+        )
     }
 
     pub fn exists(self) -> MonadicParser<bool> {

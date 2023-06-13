@@ -2,7 +2,6 @@ use crate::union;
 
 use super::monadic_parser::MonadicParser;
 
-
 // Parsers defining the alphabet of Regex
 
 /// Constructs a new [`MonadicParser`] for [`prim@char`].
@@ -27,7 +26,8 @@ pub fn digit() -> MonadicParser<u32> {
 
 /// Returns a [`MonadicParser`] which parses numbers.
 pub fn number() -> MonadicParser<u32> {
-    digit().one_or_more()
+    digit()
+        .one_or_more()
         .map(|v| Some(v.iter().fold(0, |acc, d| acc * 10 + d)))
 }
 

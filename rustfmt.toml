@@ -1,0 +1,7 @@
+chain_width = 60
+fn_call_width = 100
+fn_params_layout = "Compressed"
+max_width = 130
+newline_style = "Unix"
+single_line_if_else_max_width = 95
+struct_lit_width = 95
