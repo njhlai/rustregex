@@ -34,6 +34,7 @@ pub fn escaped() -> MonadicParser<char> {
     character('\\') >> any()
 }
 
+/// Returns a [`MonadicParser`] which parses for end of an expression.
 pub fn end() -> MonadicParser<()> {
     MonadicParser::new(|expr| if expr.is_empty() { Some(((), expr)) } else { None })
 }
