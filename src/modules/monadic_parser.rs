@@ -1,3 +1,5 @@
+use std::ops;
+
 type ParserFunction<T> = dyn Fn(&str) -> Option<(T, &str)>;
 
 pub struct MonadicParser<T> {
@@ -6,10 +8,6 @@ pub struct MonadicParser<T> {
 
 impl<T: 'static> MonadicParser<T> {
     pub fn new<F: Fn(&str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
-        MonadicParser::unit(f)
-    }
-
-    fn unit<F: Fn(&str) -> Option<(T, &str)> + 'static>(f: F) -> Self {
         MonadicParser { fcn: Box::new(f) }
     }
 
@@ -18,7 +16,7 @@ impl<T: 'static> MonadicParser<T> {
     }
 
     pub fn chain<U: 'static>(self, other: MonadicParser<U>) -> MonadicParser<(T, U)> {
-        MonadicParser::unit(move |expr| {
+        MonadicParser::new(move |expr| {
             let (t, rst_t) = self.parse(expr)?;
             let (u, rst_u) = other.parse(rst_t)?;
 
@@ -27,7 +25,7 @@ impl<T: 'static> MonadicParser<T> {
     }
 
     pub fn map<U: 'static, F: Fn(T) -> Option<U> + 'static>(self, transform: F) -> MonadicParser<U> {
-        MonadicParser::unit(move |expr| {
+        MonadicParser::new(move |expr| {
             let (t, rst) = self.parse(expr)?;
             Some((transform(t)?, rst))
         })
@@ -42,7 +40,7 @@ impl<T: 'static> MonadicParser<T> {
     }
 
     pub fn repeat(self) -> MonadicParser<Vec<T>> {
-        MonadicParser::unit(move |expr| {
+        MonadicParser::new(move |expr| {
             let mut current_expr = expr;
             let mut res = vec![];
             while let Some((t, rst)) = self.parse(current_expr) {
@@ -54,8 +52,12 @@ impl<T: 'static> MonadicParser<T> {
         })
     }
 
+    pub fn one_or_more(self) -> MonadicParser<Vec<T>> {
+        self.repeat().exclude(Vec::is_empty)
+    }
+
     pub fn optional(self) -> MonadicParser<Option<T>> {
-        MonadicParser::unit(
+        MonadicParser::new(
             move |expr| {
                 if let Some((t, rst)) = self.parse(expr) {
                     Some((Some(t), rst))
@@ -66,8 +68,36 @@ impl<T: 'static> MonadicParser<T> {
         )
     }
 
+    pub fn exists(self) -> MonadicParser<bool> {
+        self.optional().map(|x| Some(x.is_some()))
+    }
+
     pub fn lazy<F: Fn() -> MonadicParser<T> + 'static>(closure: F) -> Self {
         MonadicParser::new(move |expr| closure().parse(expr))
+    }
+}
+
+impl<T: 'static, U: 'static> ops::BitAnd<MonadicParser<U>> for MonadicParser<T> {
+    type Output = MonadicParser<(T, U)>;
+
+    fn bitand(self, rhs: MonadicParser<U>) -> Self::Output {
+        self.chain(rhs)
+    }
+}
+
+impl<T: 'static, U: 'static> ops::Shl<MonadicParser<U>> for MonadicParser<T> {
+    type Output = MonadicParser<T>;
+
+    fn shl(self, rhs: MonadicParser<U>) -> Self::Output {
+        self.chain(rhs).map(|(t, _)| Some(t))
+    }
+}
+
+impl<T: 'static, U: 'static> ops::Shr<MonadicParser<U>> for MonadicParser<T> {
+    type Output = MonadicParser<U>;
+
+    fn shr(self, rhs: MonadicParser<U>) -> Self::Output {
+        self.chain(rhs).map(|(_, u)| Some(u))
     }
 }
 

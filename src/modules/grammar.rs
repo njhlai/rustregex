@@ -1,6 +1,8 @@
-use std::matches;
+use std::iter;
 
-use super::alphabet::*;
+use crate::union;
+
+use super::alphabet::{any, character, end, escaped, number};
 use super::monadic_parser::MonadicParser;
 
 /// A [`MonadicParser`] defining the rules of a formal grammar
@@ -15,173 +17,178 @@ impl<S: 'static> Grammar<S> {
     }
 }
 
-/// Returns the [`Grammar`] defining Regex's grammar.
-pub fn regex() -> Grammar<Regex> {
-    character('^')
-        .map(|_| Some(Anchor::Start))
-        .optional()
-        .chain(expression())
-}
-
 // Specification of grammar rules for Regex
 
 /// `Regex ::= '^'? Expression`
-pub type Regex = (Option<Anchor>, Expression);
+pub type Regex = Expression;
+
+/// Returns the [`Grammar`] defining Regex's grammar.
+pub fn regex() -> Grammar<Regex> {
+    expression() << end()
+}
 
 /// `Expression ::= Subexpression ('|' Subexpression)*`
-type Expression = Vec<Subexpression>;
+pub type Expression = Vec<SubExpression>;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Expression`].
 fn expression() -> MonadicParser<Expression> {
-    subexpression()
-        .chain(character('|').chain(subexpression()).repeat())
-        .map(|(subexp, remaining)| {
-            let expression = remaining
-                .into_iter()
-                .fold(vec![subexp], |mut acc, (_, nextsubexp)| {
-                    acc.push(nextsubexp);
-
-                    acc
-                });
-
-            Some(expression)
-        })
+    (subexpression() & (character('|') >> subexpression()).repeat())
+        .map(|(first, mut rest)| Some(iter::once(first).chain(rest.drain(..)).collect()))
 }
 
-/// `Subexpression ::= SubexpressionItem+`
-type Subexpression = Vec<SubexpressionItem>;
+/// `Subexpression ::= BasicExpression+`
+pub type SubExpression = Vec<BasicExpression>;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Subexpression`].
-fn subexpression() -> MonadicParser<Subexpression> {
-    subexpression_item().repeat().filter(|v| !v.is_empty())
+fn subexpression() -> MonadicParser<SubExpression> {
+    basic_expression().one_or_more()
 }
 
-/// `SubexpressionItem ::= Match | Group | Anchor | Backreference`
+/// `BasicExpression ::= Anchor | Quantified`
 #[derive(Debug)]
-pub enum SubexpressionItem {
-    /// `Group ::= '(' Expression ')' Quantifier?`
+pub enum BasicExpression {
+    /// `Anchor ::= '^' | '$' | '\b' | '\B'`
+    Anchor(Anchor),
+    /// `Quantified ::= Quantified`
+    Quantified(Quantified),
+}
+
+fn basic_expression() -> MonadicParser<BasicExpression> {
+    union!(
+        quantified().map(|q| Some(BasicExpression::Quantified(q))),
+        anchor().map(|a| Some(BasicExpression::Anchor(a))),
+    )
+}
+
+/// `Quantified ::= Quantifiable Quantifier?`
+#[derive(Debug)]
+pub struct Quantified {
+    quantified: Quantifiable,
+    quantifier: Option<Quantifier>,
+}
+
+fn quantified() -> MonadicParser<Quantified> {
+    (quantifiable() & quantifier().optional()).map(|(qd, qr)| Some(Quantified { quantified: qd, quantifier: qr }))
+}
+
+/// `Quantifiable ::= Group | Match | Backreference`
+#[derive(Debug)]
+pub enum Quantifiable {
+    /// `Group ::= '(' Expression ')'`
     Group(Group),
     /// `Match ::= MatchItem Quantifier?`
     Match(Match),
-    /// `Anchor ::= '^' | '$' | '\b' | '\B'`
-    Anchor(Anchor),
-    /// `Backreference ::= '\' Integer`
+    /// `Backreference ::= '\' 1..9`
     Backreference(Backreference),
 }
 
-/// Returns a [`MonadicParser`] associated to the grammar rule [`SubexpressionItem`].
-fn subexpression_item() -> MonadicParser<SubexpressionItem> {
-    crate::union![
-        MonadicParser::lazy(|| group().map(|group| Some(SubexpressionItem::Group(group)))),
-        r#match().map(|r#match| Some(SubexpressionItem::Match(r#match))),
-        anchor().map(|anchor| Some(SubexpressionItem::Anchor(anchor))),
-        backreference().map(|br| Some(SubexpressionItem::Backreference(br))),
-    ]
+fn quantifiable() -> MonadicParser<Quantifiable> {
+    union!(
+        group().map(|g| Some(Quantifiable::Group(g))),
+        r#match().map(|m| Some(Quantifiable::Match(m))),
+        backreference().map(|br| Some(Quantifiable::Backreference(br)))
+    )
 }
 
-/// `Group ::= '(' Expression ')' Quantifier?`
-type Group = (Expression, Option<Quantifier>);
+/// `Group ::= '(' Expression ')'`
+pub type Group = Expression;
+// /// `Group ::= '(' ":?"? Expression ')'
+// pub struct Group {
+//     non_capturing: bool,
+//     expr: Box<Expression>,
+// }
+// type Group = (bool, Expression);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Group`].
 fn group() -> MonadicParser<Group> {
-    character('(')
-        // .chain(character(':').chain(character('?')).optional())
-        // .map(|(_, _)| Some(()))
-        .chain(expression())
-        .map(|(_, e)| Some(e))
-        .chain(character(')'))
-        .map(|(e, _)| Some(e))
-        .chain(quantifier().optional())
+    character('(') >> MonadicParser::lazy(expression) << character(')')
+    // (character('(') >> string(":?").exists() & expression() << character(')')).map(
+    //     |(non_capturing, expr)| {
+    //         Some(Group {
+    //             non_capturing: non_capturing,
+    //             expr: Box::new(expr),
+    //         })
+    //     },
+    // )
 }
 
-/// `Match ::= MatchItem Quantifier?`
-type Match = (MatchItem, Option<Quantifier>);
-
-/// Returns a [`MonadicParser`] associated to the grammar rule [`Match`].
-fn r#match() -> MonadicParser<Match> {
-    match_item().chain(quantifier().optional())
-}
-
-/// `MatchItem ::= '.' | MatchCharacterClass | Char`
+/// `Match ::= MatchItem`
 #[derive(Debug)]
-pub enum MatchItem {
+pub enum Match {
     /// `.`
     Any,
-    /// `MatchCharacterClass ::= CharacterGroup | ChracterClass`
-    MatchCharacterClass(MatchCharacterClass),
+    /// `ChracterClass | ChracterClass`
+    CharacterClass(CharacterClass),
+    /// `CharacterGroup`
+    CharacterGroup(CharacterGroup),
     /// `Char`
     Char(char),
 }
 
-/// Returns a [`MonadicParser`] associated to the grammar rule [`MatchItem`].
-fn match_item() -> MonadicParser<MatchItem> {
-    crate::union![
-        character('.').map(|_| Some(MatchItem::Any)),
-        match_character_class().map(|mcc| Some(MatchItem::MatchCharacterClass(mcc))),
-        char(),
-    ]
-}
-
-/// `MatchCharacterClass ::= CharacterGroup | ChracterClass`
-#[derive(Debug)]
-pub enum MatchCharacterClass {
-    /// `CharacterGroup ::= '['  CharacterGroupItem+ ']'`
-    CharacterGroup(CharacterGroup),
-    /// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S`
-    CharacterClass(CharacterClass),
-}
-
-/// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterClass`].
-fn match_character_class() -> MonadicParser<MatchCharacterClass> {
-    crate::union![
-        character_group().map(|cg| Some(MatchCharacterClass::CharacterGroup(cg))),
-        character_class().map(|cc| Some(MatchCharacterClass::CharacterClass(cc))),
+/// Returns a [`MonadicParser`] associated to the grammar rule [`Match`].
+fn r#match() -> MonadicParser<Match> {
+    union![
+        character('.').map(|_| Some(Match::Any)),
+        character_class().map(|cc| Some(Match::CharacterClass(cc))),
+        character_group().map(|cg| Some(Match::CharacterGroup(cg))),
+        char().map(|c| Some(Match::Char(c))),
     ]
 }
 
 /// `CharacterGroup ::= '['  CharacterGroupItem+ ']'`
-type CharacterGroup = Vec<CharacterGroupItem>;
+pub type CharacterGroup = Vec<CharacterGroupItem>;
+// /// `CharacterGroup ::= '[' ^? CharacterGroupItem+ ']'`
+// pub struct CharacterGroup {
+//     inverted: bool,
+//     items: Vec<CharacterGroupItem>,
+// }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroup`].
 fn character_group() -> MonadicParser<CharacterGroup> {
-    character('[')
-        // .chain(character('^').optional())
-        // .map(|(_, maybe_start)| maybe_start.map(|_| Some(???)))
-        .chain(character_group_item().repeat().filter(|v| !v.is_empty()))
-        .map(|(_, cg)| Some(cg))
-        .chain(character(']'))
-        .map(|(cg, _)| Some(cg))
+    character('[') >> character_group_item().one_or_more() << character(']')
+    // (character('[') >> character('^').exists() & character_group_item().oneOrMore() << character(']'))
+    //     .map(|(inverted, items)| Some(CharacterGroup{inverted:inverted, items}))
 }
 
-/// `CharacterGroupItem ::= CharacterClass | CharacterRange`
+/// `CharacterGroupItem ::= CharacterClass | CharacterRange | Char`
 #[derive(Debug)]
 pub enum CharacterGroupItem {
     /// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S`
     CharacterClass(CharacterClass),
     /// `CharacterRange ::= Char '-' Char`
     CharacterRange(CharacterRange),
+    /// `Char ::= Char`
+    Char(char),
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroupItem`].
 fn character_group_item() -> MonadicParser<CharacterGroupItem> {
-    crate::union![
+    union![
         character_class().map(|cc| Some(CharacterGroupItem::CharacterClass(cc))),
         character_range().map(|range| Some(CharacterGroupItem::CharacterRange(range))),
+        character_group_char().map(|c| Some(CharacterGroupItem::Char(c)))
     ]
 }
 
 /// `CharacterRange ::= Char '-' Char`
-type CharacterRange = (char, Option<char>);
+pub type CharacterRange = (char, char);
 
-/// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterRange`].
+/// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroupItem`].
 fn character_range() -> MonadicParser<CharacterRange> {
-    legal_character()
-        .chain(character('-').chain(legal_character()).optional())
-        .map(|(l, maybe)| {
-            let maybe_r = maybe.map(|(_, r)| r);
+    character_group_char() << character('-') & character_group_char()
+}
 
-            Some((l, maybe_r))
-        })
+/// Returns a [`MonadicParse`] associated to the grammar rule for 'Char' in [`CharacterGroupItem`]
+fn character_group_char() -> MonadicParser<char> {
+    union![
+        any().exclude(char_group_special),
+        escaped().filter(char_group_special),
+        control_char(),
+    ]
+}
+
+fn char_group_special(c: &char) -> bool {
+    matches!(c, '^' | '\\' | '-' | ']')
 }
 
 /// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S'`
@@ -203,28 +210,43 @@ pub enum CharacterClass {
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterClass`].
 fn character_class() -> MonadicParser<CharacterClass> {
-    escaped_character(|c| matches!(c, 'd' | 'D' | 's' | 'S' | 'w' | 'W')).map(|c| match c {
+    escaped().map(|c| match c {
         'w' => Some(CharacterClass::Alphanumeric),
         'W' => Some(CharacterClass::NotAlphanumeric),
         'd' => Some(CharacterClass::Digit),
         'D' => Some(CharacterClass::NotDigit),
         's' => Some(CharacterClass::Whitespace),
         'S' => Some(CharacterClass::NotWhitespace),
-        _ => panic!("Should not happen, something is seriously wrong!"),
+        _ => None,
     })
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Char`].
 ///
 /// [`Char`]: MatchItem::Char
-fn char() -> MonadicParser<MatchItem> {
-    crate::union![
-        legal_character().map(|c| Some(MatchItem::Char(c))),
-        escaped_character(|c| {
-            matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
-        })
-        .map(|c| Some(MatchItem::Char(c))),
+fn char() -> MonadicParser<char> {
+    union![
+        any().exclude(special_char),
+        escaped().filter(special_char),
+        control_char(),
     ]
+}
+
+/// Returns a [`MonadicParser`] associated to control characters
+fn control_char() -> MonadicParser<char> {
+    escaped().map(|c| match c {
+        't' => Some('\t'),
+        'n' => Some('\n'),
+        'r' => Some('\r'),
+        'v' => Some('\x0b'),
+        'f' => Some('\x0c'),
+        '0' => Some('\0'),
+        _ => None,
+    })
+}
+
+fn special_char(c: &char) -> bool {
+    matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
 }
 
 /// `Anchor ::= '^' | '$' | '\b' | '\B'`
@@ -242,22 +264,23 @@ pub enum Anchor {
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Anchor`].
 fn anchor() -> MonadicParser<Anchor> {
-    crate::union![
-        escaped_character(|c| matches!(c, 'b' | 'B')).map(|c| match c {
+    union![
+        character('^').map(|_| Some(Anchor::Start)),
+        escaped().map(|c| match c {
             'b' => Some(Anchor::WordBoundary),
             'B' => Some(Anchor::NotWordBoundary),
-            _ => panic!("Should not happen, something is seriously wrong!"),
+            _ => None,
         }),
         character('$').map(|_| Some(Anchor::End)),
     ]
 }
 
-/// `Backreference ::= '\' Integer`
-type Backreference = usize;
+/// `Backreference ::= '\' 1..9`
+pub type Backreference = u32;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Backreference`].
 fn backreference() -> MonadicParser<Backreference> {
-    escaped_character(char::is_ascii_digit).map(|c| usize::try_from(c.to_digit(10)?).ok())
+    escaped().map(|c| c.to_digit(10)).exclude(|&n| n == 0)
 }
 
 /// `Quantifier ::= '*' | '+' | '?' | RangeQuantifier`
@@ -275,7 +298,7 @@ pub enum Quantifier {
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Quantifier`].
 fn quantifier() -> MonadicParser<Quantifier> {
-    crate::union![
+    union![
         character('*').map(|_| Some(Quantifier::ZeroOrMore)),
         character('+').map(|_| Some(Quantifier::OneOrMore)),
         character('?').map(|_| Some(Quantifier::ZeroOrOne)),
@@ -283,20 +306,11 @@ fn quantifier() -> MonadicParser<Quantifier> {
     ]
 }
 
-/// `RangeQuantifier ::= '{' RangeQuantifierLowerBound? ( ',' RangeQuantifierUpperBound? )? '}'`
-type RangeQuantifier = (usize, Option<usize>);
+/// `RangeQuantifier ::= '{' RangeQuantifierLowerBound ( ',' RangeQuantifierUpperBound? )? '}'`
+pub type RangeQuantifier = (u32, Option<u32>);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`RangeQuantifier`].
 fn range_quantifier() -> MonadicParser<RangeQuantifier> {
-    character('{')
-        .chain(number().optional())
-        .map(|(_, l)| l.or(Some(0)))
-        .chain(character(',').chain(number().optional()).optional())
-        .map(|(l, maybe)| {
-            let maybe_r = maybe.map_or_else(|| Some(l), |(_, r)| r);
-
-            Some((l, maybe_r))
-        })
-        .chain(character('}'))
-        .map(|(range, _)| Some(range))
+    (character('{') >> number() & (character(',') >> number().optional()).optional() << character('}'))
+        .map(|(start, maybe_end)| Some((start, maybe_end.and(maybe_end?))))
 }
