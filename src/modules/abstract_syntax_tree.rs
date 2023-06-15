@@ -3,7 +3,8 @@ use std::slice::Iter;
 use super::automata::Automata;
 use super::error::Error;
 use super::grammar::{
-    Anchor, BasicExpression, CharacterClass, Expression, Match, Quantifiable, Quantified, Quantifier, SubExpression,
+    Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, Expression, Match, Quantifiable, Quantified,
+    Quantifier, SubExpression,
 };
 
 /// A trait that allows types to be compiled into an [`Automata`].
@@ -92,7 +93,7 @@ impl AbstractSyntaxTree for Match {
         match self {
             Match::Any => Ok(Automata::from_lambda(|_| true)),
             Match::CharacterClass(cc) => cc.compile(),
-            Match::CharacterGroup(_) => todo!(),
+            Match::CharacterGroup(cg) => cg.compile(),
             Match::Char(c) => Ok(Automata::from_token(*c)),
         }
     }
@@ -108,5 +109,21 @@ impl AbstractSyntaxTree for CharacterClass {
             CharacterClass::Whitespace => Automata::from_lambda(|x| x.is_ascii_whitespace()),
             CharacterClass::NotWhitespace => Automata::from_lambda(|x| !x.is_ascii_whitespace()),
         })
+    }
+}
+
+impl AbstractSyntaxTree for CharacterGroup {
+    fn compile(&self) -> Result<Automata, Error> {
+        fold(self.iter(), Automata::or, "CharacterGroupItem", "CharacterGroup")
+    }
+}
+
+impl AbstractSyntaxTree for CharacterGroupItem {
+    fn compile(&self) -> Result<Automata, Error> {
+        match self {
+            CharacterGroupItem::CharacterClass(cc) => cc.compile(),
+            CharacterGroupItem::CharacterRange(_) => todo!(),
+            CharacterGroupItem::Char(c) => Ok(Automata::from_token(*c)),
+        }
     }
 }
