@@ -60,7 +60,7 @@ fn basic_expression() -> MonadicParser<BasicExpression> {
 }
 
 /// `Anchor ::= '^' | '$' | '\b' | '\B'`
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Anchor {
     Start,
     End,

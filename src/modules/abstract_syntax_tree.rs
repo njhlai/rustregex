@@ -3,7 +3,6 @@ use super::error::Error;
 use super::grammar::{
     Anchor, BasicExpression, CharacterClass, Expression, Match, Quantifiable, Quantified, Quantifier, SubExpression,
 };
-use super::state::Anchor as StateAnchor;
 
 /// A trait that allows types to be compiled into an [`Automata`].
 pub trait AbstractSyntaxTree {
@@ -44,12 +43,7 @@ impl AbstractSyntaxTree for BasicExpression {
 
 impl AbstractSyntaxTree for Anchor {
     fn compile(&self) -> Result<Automata, Error> {
-        match self {
-            Anchor::Start => Ok(Automata::from_anchor(StateAnchor::Start)),
-            Anchor::End => Ok(Automata::from_anchor(StateAnchor::End)),
-            Anchor::WordBoundary => Ok(Automata::from_anchor(StateAnchor::WordBoundary)),
-            Anchor::NotWordBoundary => todo!(),
-        }
+        Ok(Automata::from_anchor(*self))
     }
 }
 
