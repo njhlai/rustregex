@@ -7,13 +7,13 @@ use super::{
 };
 
 /// A modal for formal language
-pub struct Language<S> {
-    grammar: Grammar<S>,
+pub struct Language<T> {
+    grammar: Grammar<T>,
 }
 
-impl<S: AbstractSyntaxTree + 'static> Language<S> {
+impl<T: AbstractSyntaxTree + 'static> Language<T> {
     /// Constructs a [`Language`] associated to the formal grammar compiled using specification `spec`.
-    pub fn new(spec: fn() -> Grammar<S>) -> Self {
+    pub fn new(spec: fn() -> Grammar<T>) -> Self {
         Language { grammar: Grammar::compile(spec) }
     }
 
@@ -25,8 +25,8 @@ impl<S: AbstractSyntaxTree + 'static> Language<S> {
     }
 
     /// Returns the syntax representation of `expr` using [`Language`]'s grammar.
-    pub fn syntax(&self, expr: &str) -> Option<S> {
-        self.grammar.parse(expr).map(|(s, _)| s)
+    pub fn syntax(&self, expr: &str) -> Option<T> {
+        self.grammar.parse(expr).map(|(t, _)| t)
     }
 }
 
