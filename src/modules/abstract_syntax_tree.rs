@@ -94,7 +94,7 @@ impl AbstractSyntaxTree for Match {
             Match::Any => Ok(Automata::from_lambda(|_| true)),
             Match::CharacterClass(cc) => cc.compile(),
             Match::CharacterGroup(cg) => cg.compile(),
-            Match::Char(c) => Ok(Automata::from_token(*c)),
+            Match::Char(c) => c.compile(),
         }
     }
 }
@@ -123,7 +123,13 @@ impl AbstractSyntaxTree for CharacterGroupItem {
         match self {
             CharacterGroupItem::CharacterClass(cc) => cc.compile(),
             CharacterGroupItem::CharacterRange(_) => todo!(),
-            CharacterGroupItem::Char(c) => Ok(Automata::from_token(*c)),
+            CharacterGroupItem::Char(c) => c.compile(),
         }
+    }
+}
+
+impl AbstractSyntaxTree for char {
+    fn compile(&self) -> Result<Automata, Error> {
+        Ok(Automata::from_token(*self))
     }
 }
