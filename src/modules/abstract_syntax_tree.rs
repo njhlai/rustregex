@@ -1,3 +1,5 @@
+use std::slice::Iter;
+
 use super::automata::Automata;
 use super::error::Error;
 use super::grammar::{
@@ -10,25 +12,26 @@ pub trait AbstractSyntaxTree {
     fn compile(&self) -> Result<Automata, Error>;
 }
 
+/// Compiles `Iter<T>` types into an [`Automata`] by folding.
+fn fold<T: AbstractSyntaxTree>(
+    mut it: Iter<T>, f: fn(Automata, Automata) -> Automata, sub_name: &str, name: &str,
+) -> Result<Automata, Error> {
+    let initial = it
+        .next()
+        .ok_or_else(|| Error::from(format!("Internal error: No {sub_name} in {name}").as_str()))?;
+
+    it.fold(initial.compile(), |acc, block| Ok(f(acc?, block.compile()?)))
+}
+
 impl AbstractSyntaxTree for Expression {
     fn compile(&self) -> Result<Automata, Error> {
-        let mut it = self.iter();
-        let initial_sub_expr = it
-            .next()
-            .ok_or_else(|| Error::from("Internal error: No SubExpression in Regex"))?;
-
-        it.fold(initial_sub_expr.compile(), |acc, basic_expr| Ok(acc?.or(basic_expr.compile()?)))
+        fold(self.iter(), Automata::or, "SubExpression", "Regex")
     }
 }
 
 impl AbstractSyntaxTree for SubExpression {
     fn compile(&self) -> Result<Automata, Error> {
-        let mut it = self.iter();
-        let initial_basic_expr = it
-            .next()
-            .ok_or_else(|| Error::from("Internal error: No BasicExpression in SubExpression"))?;
-
-        it.fold(initial_basic_expr.compile(), |acc, basic_expr| Ok(acc?.concat(basic_expr.compile()?)))
+        fold(self.iter(), Automata::concat, "BasicExpression", "SubExpression")
     }
 }
 
