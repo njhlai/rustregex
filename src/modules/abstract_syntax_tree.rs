@@ -5,7 +5,9 @@ use super::grammar::{
 };
 use super::state::Anchor as StateAnchor;
 
+/// A trait that allows types to be compiled into an [`Automata`].
 pub trait AbstractSyntaxTree {
+    /// Compiles type into an [`Automata`]
     fn compile(&self) -> Result<Automata, Error>;
 }
 
