@@ -54,21 +54,39 @@ pub enum BasicExpression {
 /// Returns a [`MonadicParser`] associated to the grammar rule [`BasicExpression`].
 fn basic_expression() -> MonadicParser<BasicExpression> {
     union!(
-        quantified().map(|q| Some(BasicExpression::Quantified(q))),
         anchor().map(|a| Some(BasicExpression::Anchor(a))),
+        quantified().map(|q| Some(BasicExpression::Quantified(q))),
     )
 }
 
-/// `Quantified ::= Quantifiable Quantifier?`
+/// `Anchor ::= '^' | '$' | '\b' | '\B'`
 #[derive(Debug)]
-pub struct Quantified {
-    quantified: Quantifiable,
-    quantifier: Option<Quantifier>,
+pub enum Anchor {
+    Start,
+    End,
+    WordBoundary,
+    NotWordBoundary,
 }
+
+/// Returns a [`MonadicParser`] associated to the grammar rule [`Anchor`].
+fn anchor() -> MonadicParser<Anchor> {
+    union![
+        character('^').map(|_| Some(Anchor::Start)),
+        escaped().map(|c| match c {
+            'b' => Some(Anchor::WordBoundary),
+            'B' => Some(Anchor::NotWordBoundary),
+            _ => None,
+        }),
+        character('$').map(|_| Some(Anchor::End)),
+    ]
+}
+
+/// `Quantified ::= Quantifiable Quantifier?`
+pub type Quantified = (Quantifiable, Option<Quantifier>);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Quantified`].
 fn quantified() -> MonadicParser<Quantified> {
-    (quantifiable() & quantifier().optional()).map(|(qd, qr)| Some(Quantified { quantified: qd, quantifier: qr }))
+    quantifiable() & quantifier().optional()
 }
 
 /// `Quantifiable ::= Group | Match | Backreference`
@@ -231,28 +249,6 @@ fn control_char() -> MonadicParser<char> {
 
 fn special_char(c: &char) -> bool {
     matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
-}
-
-/// `Anchor ::= '^' | '$' | '\b' | '\B'`
-#[derive(Debug)]
-pub enum Anchor {
-    Start,
-    End,
-    WordBoundary,
-    NotWordBoundary,
-}
-
-/// Returns a [`MonadicParser`] associated to the grammar rule [`Anchor`].
-fn anchor() -> MonadicParser<Anchor> {
-    union![
-        character('^').map(|_| Some(Anchor::Start)),
-        escaped().map(|c| match c {
-            'b' => Some(Anchor::WordBoundary),
-            'B' => Some(Anchor::NotWordBoundary),
-            _ => None,
-        }),
-        character('$').map(|_| Some(Anchor::End)),
-    ]
 }
 
 /// `Backreference ::= '\' 1..9`
