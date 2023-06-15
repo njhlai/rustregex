@@ -1,6 +1,8 @@
 use super::automata::Automata;
 use super::error::Error;
-use super::grammar::{Anchor, BasicExpression, CharacterClass, Expression, Match, Quantifiable, Quantified, Quantifier, SubExpression};
+use super::grammar::{
+    Anchor, BasicExpression, CharacterClass, Expression, Match, Quantifiable, Quantified, Quantifier, SubExpression,
+};
 use super::state::Anchor as StateAnchor;
 
 pub trait AbstractSyntaxTree {
