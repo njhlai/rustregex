@@ -1,4 +1,4 @@
-use super::abstract_syntax_tree::AbstractSyntaxTree;
+use super::ast::AbstractSyntaxTree;
 use super::automata::Automata;
 use super::error::Error;
 use super::{

@@ -21,7 +21,7 @@ fn fold<T: AbstractSyntaxTree>(
         .next()
         .ok_or_else(|| Error::from(format!("Internal error: No {sub_name} in {name}").as_str()))?;
 
-    it.fold(initial.compile(), |acc, block| Ok(f(acc?, block.compile()?)))
+    it.fold(initial.compile(), |acc, subsequent| Ok(f(acc?, subsequent.compile()?)))
 }
 
 impl AbstractSyntaxTree for Expression {

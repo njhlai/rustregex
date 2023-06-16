@@ -1,5 +1,5 @@
-mod abstract_syntax_tree;
 mod alphabet;
+mod ast;
 mod automata;
 mod error;
 mod grammar;
