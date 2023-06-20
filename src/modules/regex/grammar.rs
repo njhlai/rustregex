@@ -179,15 +179,13 @@ fn character_range() -> MonadicParser<CharacterRange> {
 
 /// Returns a [`MonadicParser`] associated to the grammar rule for `Char` in [`CharacterGroupItem`]
 fn character_group_char() -> MonadicParser<char> {
+    let char_group_special = |c: &char| matches!(c, '^' | '\\' | '-' | ']');
+
     union![
         any().exclude(char_group_special),
         escaped().filter(char_group_special),
         control_char(),
     ]
-}
-
-fn char_group_special(c: &char) -> bool {
-    matches!(c, '^' | '\\' | '-' | ']')
 }
 
 /// `CharacterClass ::= '\w' | '\W' | '\d' | '\D | '\s' | '\S'`
@@ -216,6 +214,10 @@ fn character_class() -> MonadicParser<CharacterClass> {
 
 /// Returns a [`MonadicParser`] associated to the grammar rule `Char`.
 fn char() -> MonadicParser<char> {
+    let special_char = |c: &char| {
+        matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
+    };
+
     union![
         any().exclude(special_char),
         escaped().filter(special_char),
@@ -234,10 +236,6 @@ fn control_char() -> MonadicParser<char> {
         '0' => Some('\0'),
         _ => None,
     })
-}
-
-fn special_char(c: &char) -> bool {
-    matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
 }
 
 /// `Backreference ::= '\' 1..9`
