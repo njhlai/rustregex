@@ -272,5 +272,5 @@ pub type RangeQuantifier = (u32, Option<u32>);
 /// Returns a [`MonadicParser`] associated to the grammar rule [`RangeQuantifier`].
 fn range_quantifier() -> MonadicParser<RangeQuantifier> {
     (character('{') >> number() & (character(',') >> number().optional()).optional() << character('}'))
-        .map(|(start, maybe_end)| Some((start, maybe_end.and(maybe_end?))))
+        .map(|(start, maybe_end)| Some((start, maybe_end.or(Some(Some(start)))?)))
 }
