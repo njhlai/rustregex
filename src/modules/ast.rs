@@ -1,4 +1,4 @@
-use std::slice::Iter;
+use std::iter;
 
 use super::automata::Automata;
 use super::error::Error;
@@ -13,28 +13,24 @@ pub trait AbstractSyntaxTree {
     fn compile(&self) -> Result<Automata, Error>;
 }
 
-/// Compiles `Iter<T>` types into an [`Automata`] by folding.
-fn fold<T: AbstractSyntaxTree>(
-    mut it: Iter<T>, f: fn(Automata, Automata) -> Automata, sub_name: &str, name: &str,
-) -> Result<Automata, Error> {
-    let initial = it
-        .next()
-        .ok_or_else(|| Error::from(format!("Internal error: No {sub_name} in {name}").as_str()))?;
-
-    it.fold(initial.compile(), |acc, subsequent| Ok(f(acc?, subsequent.compile()?)))
+/// Folds a non-empty `Iterator<Item = Result<T, Error>>` into a single [`Result<T, Error>`] using `f`.
+fn fold<I, T, F>( mut it: I, f: F) -> Result<T, Error> where I : Iterator<Item=Result<T, Error>>, F: Fn(T, T) -> T, {
+    let initial = it.next().ok_or_else(|| Error::from( "iterator was expected to be non-empty"))?;
+    it.fold(initial, |acc, elem| Ok(f(acc?, elem?)) )
 }
+
 
 // Implementation of AbstractSyntaxTree for elements of Regex
 
 impl AbstractSyntaxTree for Expression {
     fn compile(&self) -> Result<Automata, Error> {
-        fold(self.iter(), Automata::or, "SubExpression", "Regex")
+        fold(self.iter().map(AbstractSyntaxTree::compile), Automata::or)
     }
 }
 
 impl AbstractSyntaxTree for SubExpression {
     fn compile(&self) -> Result<Automata, Error> {
-        fold(self.iter(), Automata::concat, "BasicExpression", "SubExpression")
+        fold(self.iter().map(AbstractSyntaxTree::compile), Automata::concat)
     }
 }
 
@@ -55,27 +51,24 @@ impl AbstractSyntaxTree for Anchor {
 
 impl AbstractSyntaxTree for Quantified {
     fn compile(&self) -> Result<Automata, Error> {
-        let (quantifiable, maybe_quantifier) = self;
-        let automata = quantifiable.compile();
+        let (quantifiable, quantifier) = self;
+        let make = || quantifiable.compile();
 
-        if let Some(quantifier) = maybe_quantifier {
-            match quantifier {
-                Quantifier::ZeroOrMore => Ok(automata?.closure()),
-                Quantifier::OneOrMore => Ok(automata?.plus()),
-                Quantifier::ZeroOrOne => Ok(automata?.optional()),
-                Quantifier::Range((lower, maybe_upper)) => (0..(*lower).saturating_sub(1))
-                    .fold(automata, |acc, _| Ok(acc?.concat(quantifiable.compile()?)))
-                    .and_then(|auto_lower| {
-                        if let Some(upper) = maybe_upper {
-                            (0..(*upper).saturating_sub(*lower))
-                                .fold(Ok(auto_lower), |acc, _| Ok(acc?.concat(quantifiable.compile()?.optional())))
-                        } else {
-                            Ok(auto_lower.plus())
-                        }
-                    }),
+        match quantifier {
+            None => make(),
+            Some(Quantifier::ZeroOrMore) => Ok(make()?.closure()),
+            Some(Quantifier::OneOrMore) => Ok(make()?.plus()),
+            Some(Quantifier::ZeroOrOne) => Ok(make()?.optional()),
+            Some(Quantifier::Range((lower, None))) => {
+                let lower_autos = (0..*lower).map(|_| make());
+                let upper_auto = iter::once(Ok(make()?.closure()));
+                fold(lower_autos.chain(upper_auto), Automata::concat)
+            },
+            Some(Quantifier::Range((lower, Some(upper)))) => {
+                let lower_autos = (0..*lower).map(|_| make());
+                let upper_autos = (*lower..*upper).map(|_| Ok(make()?.optional()));
+                fold(lower_autos.chain(upper_autos), Automata::concat)
             }
-        } else {
-            automata
         }
     }
 }
@@ -124,7 +117,7 @@ impl AbstractSyntaxTree for CharacterClass {
 
 impl AbstractSyntaxTree for CharacterGroup {
     fn compile(&self) -> Result<Automata, Error> {
-        fold(self.iter(), Automata::or, "CharacterGroupItem", "CharacterGroup")
+        fold(self.iter().map(AbstractSyntaxTree::compile), Automata::or)
     }
 }
 
