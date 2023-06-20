@@ -401,4 +401,93 @@ mod tests {
 
         assert_eq!(regexp.global_search("Dhelmise"), Vec::<String>::new());
     }
+
+    #[test]
+    fn regex_quantifier() {
+        let regex = init();
+
+        let compiled_regexp = regex.compile("a{3,5}");
+        assert!(compiled_regexp.is_ok());
+        let regexp = compiled_regexp.unwrap();
+
+        assert!(!regexp.full_match(""));
+        assert!(!regexp.full_match("a"));
+        assert!(regexp.full_match("aaa"));
+        assert!(regexp.full_match("aaaaa"));
+        assert!(!regexp.full_match("aaaaaa"));
+        assert!(!regexp.full_match("aaaaaaaa"));
+        assert!(!regexp.full_match("aaabaaaacaa"));
+
+        assert_eq!(regexp.greedy_search(""), None);
+        assert_eq!(regexp.greedy_search("a"), None);
+        assert_eq!(regexp.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(regexp.greedy_search("aaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaabaaaacaa"), Some(String::from("aaaa")));
+
+        assert_eq!(regexp.global_search(""), Vec::<String>::new());
+        assert_eq!(regexp.global_search("a"), Vec::<String>::new());
+        assert_eq!(regexp.global_search("aaa"), vec!["aaa"]);
+        assert_eq!(regexp.global_search("aaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaaaa"), vec!["aaaaa", "aaa"]);
+        assert_eq!(regexp.global_search("aaabaaaacaa"), vec!["aaa", "aaaa"]);
+
+        let compiled_regexp = regex.compile("a{3,}");
+        assert!(compiled_regexp.is_ok());
+        let regexp = compiled_regexp.unwrap();
+
+        assert!(!regexp.full_match(""));
+        assert!(!regexp.full_match("a"));
+        assert!(regexp.full_match("aaa"));
+        assert!(regexp.full_match("aaaaa"));
+        assert!(regexp.full_match("aaaaaa"));
+        assert!(regexp.full_match("aaaaaaaa"));
+        assert!(!regexp.full_match("aaabaaaacaa"));
+
+        assert_eq!(regexp.greedy_search(""), None);
+        assert_eq!(regexp.greedy_search("a"), None);
+        assert_eq!(regexp.greedy_search("aaa"), Some(String::from("aaa")));
+        assert_eq!(regexp.greedy_search("aaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaa"), Some(String::from("aaaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaaaa"), Some(String::from("aaaaaaaa")));
+        assert_eq!(regexp.greedy_search("aaabaaaacaa"), Some(String::from("aaaa")));
+
+        assert_eq!(regexp.global_search(""), Vec::<String>::new());
+        assert_eq!(regexp.global_search("a"), Vec::<String>::new());
+        assert_eq!(regexp.global_search("aaa"), vec!["aaa"]);
+        assert_eq!(regexp.global_search("aaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaa"), vec!["aaaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaaaa"), vec!["aaaaaaaa"]);
+        assert_eq!(regexp.global_search("aaabaaaacaa"), vec!["aaa", "aaaa"]);
+
+        let compiled_regexp = regex.compile("a{5}");
+        assert!(compiled_regexp.is_ok());
+        let regexp = compiled_regexp.unwrap();
+
+        assert!(!regexp.full_match(""));
+        assert!(!regexp.full_match("a"));
+        assert!(!regexp.full_match("aaa"));
+        assert!(regexp.full_match("aaaaa"));
+        assert!(!regexp.full_match("aaaaaa"));
+        assert!(!regexp.full_match("aaaaaaaa"));
+        assert!(!regexp.full_match("aaabaaaacaa"));
+
+        assert_eq!(regexp.greedy_search(""), None);
+        assert_eq!(regexp.greedy_search("a"), None);
+        assert_eq!(regexp.greedy_search("aaa"), None);
+        assert_eq!(regexp.greedy_search("aaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaaaaaaa"), Some(String::from("aaaaa")));
+        assert_eq!(regexp.greedy_search("aaabaaaacaa"), None);
+
+        assert_eq!(regexp.global_search(""), Vec::<String>::new());
+        assert_eq!(regexp.global_search("a"), Vec::<String>::new());
+        assert_eq!(regexp.global_search("aaa"), Vec::<String>::new());
+        assert_eq!(regexp.global_search("aaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaaaaaaa"), vec!["aaaaa"]);
+        assert_eq!(regexp.global_search("aaabaaaacaa"), Vec::<String>::new());
+    }
 }
