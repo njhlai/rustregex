@@ -6,7 +6,8 @@ use std::io::{self, Write};
 
 fn main() {
     let expr = r"^@\w+\.\b\{\w{2,3}(.\w{2,})?|c?[a-z\w\s]+\1";
-    println!("{:#?}", language::regex().parse(expr).unwrap());
+    let regex = language::regex();
+    println!("{:#?}", regex.syntax(expr).unwrap());
 
     // something to get rid of unused code warnings
     loop {
@@ -14,6 +15,7 @@ fn main() {
         if regexp_input.is_empty() {
             break;
         }
+        println!("{:#?}", regex.syntax(&regexp_input).unwrap());
 
         match RegExp::new(&regexp_input) {
             Ok(regexp) => {
