@@ -2,7 +2,8 @@ mod alphabet;
 mod ast;
 mod grammar;
 mod language;
-mod monadic_parser;
+#[allow(clippy::module_name_repetitions)]
+mod parser;
 
 pub use self::grammar::Anchor;
 

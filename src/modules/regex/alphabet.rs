@@ -1,4 +1,4 @@
-use super::monadic_parser::MonadicParser;
+use super::parser::MonadicParser;
 
 // Parsers defining the alphabet of Regex
 

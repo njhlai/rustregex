@@ -3,7 +3,7 @@ use std::iter;
 use crate::union;
 
 use super::alphabet::{any, character, end, escaped, number, string};
-use super::monadic_parser::MonadicParser;
+use super::parser::MonadicParser;
 
 /// A [`MonadicParser`] defining the rules of a formal grammar.
 pub type Grammar<T> = MonadicParser<T>;
