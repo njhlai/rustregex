@@ -8,15 +8,6 @@ use super::monadic_parser::MonadicParser;
 /// A [`MonadicParser`] defining the rules of a formal grammar.
 pub type Grammar<T> = MonadicParser<T>;
 
-impl<T: 'static> Grammar<T> {
-    /// Compiles specification `spec` of a formal grammar to the associated [`Grammar`].
-    ///
-    /// A specification of a formal grammar is a function `fn() -> Grammar<T>` which returns (the [`MonadicParser`] defining) the rules of the formal grammar.
-    pub fn compile(spec: fn() -> Grammar<T>) -> Self {
-        spec()
-    }
-}
-
 // Specification of grammar rules for Regex
 
 /// `Regex ::= Expression END`

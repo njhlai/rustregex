@@ -1,7 +1,7 @@
 use super::{Automata, Error};
 
 use super::ast::AbstractSyntaxTree;
-use super::grammar::{self, Grammar, Regex};
+use super::grammar::Grammar;
 
 /// A modal for formal language
 pub struct Language<T> {
@@ -9,15 +9,15 @@ pub struct Language<T> {
 }
 
 impl<T: AbstractSyntaxTree + 'static> Language<T> {
-    /// Constructs a [`Language`] associated to the formal grammar compiled using specification `spec`.
-    pub fn new(spec: fn() -> Grammar<T>) -> Self {
-        Language { grammar: Grammar::compile(spec) }
+    /// Constructs a [`Language`] associated to the formal grammar defined by [`Grammar`].
+    pub fn new(grammar: Grammar<T>) -> Self {
+        Language { grammar }
     }
 
     /// Parses `expr` using [`Language`]'s grammar.
     pub fn parse(&self, expr: &str) -> Result<Automata, Error> {
         self.syntax(expr)
-            .ok_or_else(|| Error::from("Internal error: expr parsed into an empty Expression"))?
+            .ok_or_else(|| Error::from("Internal error: `expr` parsed into an `None` Expression"))?
             .compile()
     }
 
@@ -25,9 +25,4 @@ impl<T: AbstractSyntaxTree + 'static> Language<T> {
     pub fn syntax(&self, expr: &str) -> Option<T> {
         self.grammar.parse(expr).map(|(t, _)| t)
     }
-}
-
-/// Returns the [`Language`] defining the Regex language.
-pub fn regex() -> Language<Regex> {
-    Language::<Regex>::new(grammar::regex)
 }

@@ -12,36 +12,30 @@ use super::error::Error;
 use self::grammar::Regex;
 use self::language::Language;
 
-pub struct RegExp {
-    automata: Automata,
-}
+pub struct RegExp(Automata);
 
 impl RegExp {
-    pub fn new(automata: Automata) -> Self {
-        RegExp { automata }
-    }
-
     pub fn full_match(&self, expr: &str) -> bool {
-        self.automata.full_match(expr)
+        self.0.full_match(expr)
     }
 
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
-        self.automata.greedy_search(expr)
+        self.0.greedy_search(expr)
     }
 
     pub fn global_search(&self, expr: &str) -> Vec<String> {
-        self.automata.global_search(expr)
+        self.0.global_search(expr)
     }
 }
 
-pub fn lang() -> Language<Regex> {
-    language::regex()
+pub fn init() -> Language<Regex> {
+    Language::new(grammar::regex())
 }
 
 impl Language<Regex> {
     /// Compiles `expr` as a regular expression into a [`RegExp`].
     pub fn compile(&self, expr: &str) -> Result<RegExp, Error> {
-        Ok(RegExp::new(self.parse(expr)?))
+        Ok(RegExp(self.parse(expr)?))
     }
 }
 
@@ -51,7 +45,7 @@ mod tests {
 
     #[test]
     fn regex_realistic() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("(a|b)*cd?e+f*");
         assert!(regexp.is_ok());
@@ -108,7 +102,7 @@ mod tests {
 
     #[test]
     fn regex_simple() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("ba*");
         assert!(regexp.is_ok());
@@ -159,7 +153,7 @@ mod tests {
 
     #[test]
     fn regex_character_classes() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile(r"\d*");
         assert!(regexp.is_ok());
@@ -239,7 +233,7 @@ mod tests {
 
     #[test]
     fn regex_multichar_closure() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("(ab)*");
         assert!(regexp.is_ok());
@@ -266,7 +260,7 @@ mod tests {
 
     #[test]
     fn regex_overlapping_union() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("(ab)*|(ba)*");
         assert!(regexp.is_ok());
@@ -292,7 +286,7 @@ mod tests {
 
     #[test]
     fn regex_start_anchor() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("^abc+");
         assert!(regexp.is_ok());
@@ -322,7 +316,7 @@ mod tests {
 
     #[test]
     fn regex_end_anchor() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("xyz+$");
         assert!(regexp.is_ok());
@@ -349,7 +343,7 @@ mod tests {
 
     #[test]
     fn regex_escaped_characters() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile(r"\^\$\|\*\?\+\.\(\)\{\}\\\n\t\r\f\v\0");
         assert!(regexp.is_ok());
@@ -366,7 +360,7 @@ mod tests {
 
     #[test]
     fn regex_anchors() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("^a*$");
         assert!(regexp.is_ok());
@@ -390,7 +384,7 @@ mod tests {
 
     #[test]
     fn regex_bad_anchor() {
-        let regexp_lang = language::regex();
+        let regexp_lang = init();
 
         let regexp = regexp_lang.compile("$Dhelmise");
         assert!(regexp.is_ok());

@@ -1,10 +1,11 @@
 mod modules;
-use modules::regex;
 
 use std::io::{self, Write};
 
+use modules::regex;
+
 fn main() {
-    let regex = regex::lang();
+    let regex = regex::init();
 
     loop {
         let regexp_input = get_user_input("regular expression: ");
