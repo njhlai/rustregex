@@ -1,17 +1,18 @@
 mod modules;
-use modules::regexp::RegExp;
+use modules::regex;
 
 use std::io::{self, Write};
 
 fn main() {
-    // something to get rid of unused code warnings
+    let regex = regex::lang();
+
     loop {
         let regexp_input = get_user_input("regular expression: ");
         if regexp_input.is_empty() {
             break;
         }
 
-        match RegExp::new(&regexp_input) {
+        match regex.compile(&regexp_input) {
             Ok(regexp) => {
                 let s = get_user_input("match against:      ");
                 println!("full match:         {}", regexp.full_match(&s));

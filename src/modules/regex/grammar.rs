@@ -27,7 +27,7 @@ pub fn regex() -> Grammar<Regex> {
     expression() << end()
 }
 
-/// `Expression ::= Subexpression ('|' Subexpression)*`
+/// `Expression ::= Subexpression ( '|' Subexpression )*`
 pub type Expression = Vec<SubExpression>;
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Expression`].
@@ -148,17 +148,17 @@ fn r#match() -> MonadicParser<Match> {
 /// `CharacterGroup ::= '['  CharacterGroupItem+ ']'`
 pub type CharacterGroup = Vec<CharacterGroupItem>;
 // /// `CharacterGroup ::= '[' ^? CharacterGroupItem+ ']'`
+// pub type CharacterGroup = (bool, Vec<CharacterGroupItem>);
 // pub struct CharacterGroup {
 //     inverted: bool,
 //     items: Vec<CharacterGroupItem>,
 // }
-// type CharacterGroup = (bool, Vec<CharacterGroupItem>);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`CharacterGroup`].
 fn character_group() -> MonadicParser<CharacterGroup> {
     character('[') >> character_group_item().one_or_more() << character(']')
     // (character('[') >> character('^').exists() & character_group_item().oneOrMore() << character(']'))
-    //     .map(|(inverted, items)| Some(CharacterGroup{inverted:inverted, items}))
+    //     .map(|(inverted, items)| Some(CharacterGroup { inverted, items }))
 }
 
 /// `CharacterGroupItem ::= CharacterClass | CharacterRange | Char`

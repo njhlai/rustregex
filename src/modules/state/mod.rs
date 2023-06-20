@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
-use super::grammar::Anchor;
+use super::regex::Anchor;
 
 pub trait State {
     fn epsilon(&self, anchors: &[Anchor]) -> &[Rc<RefCell<dyn State>>];

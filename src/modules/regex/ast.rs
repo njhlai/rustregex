@@ -1,7 +1,7 @@
 use std::iter;
 
-use super::automata::Automata;
-use super::error::Error;
+use super::{Automata, Error};
+
 use super::grammar::{
     Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, Expression, Group, Match, Quantifiable,
     Quantified, Quantifier, SubExpression,
@@ -18,6 +18,7 @@ fn fold<T, I: Iterator<Item = Result<T, Error>>, F: Fn(T, T) -> T>(mut it: I, f:
     let initial = it
         .next()
         .ok_or_else(|| Error::from("Internal Error: Iterator was expected to be non-empty"))?;
+
     it.fold(initial, |acc, elem| Ok(f(acc?, elem?)))
 }
 
