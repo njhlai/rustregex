@@ -1,11 +1,9 @@
 mod modules;
-use modules::language;
 use modules::regexp::RegExp;
 
 use std::io::{self, Write};
 
 fn main() {
-
     // something to get rid of unused code warnings
     loop {
         let regexp_input = get_user_input("regular expression: ");

@@ -14,11 +14,12 @@ pub trait AbstractSyntaxTree {
 }
 
 /// Folds a non-empty `Iterator<Item = Result<T, Error>>` into a single [`Result<T, Error>`] using `f`.
-fn fold<I, T, F>( mut it: I, f: F) -> Result<T, Error> where I : Iterator<Item=Result<T, Error>>, F: Fn(T, T) -> T, {
-    let initial = it.next().ok_or_else(|| Error::from( "iterator was expected to be non-empty"))?;
-    it.fold(initial, |acc, elem| Ok(f(acc?, elem?)) )
+fn fold<T, I: Iterator<Item = Result<T, Error>>, F: Fn(T, T) -> T>(mut it: I, f: F) -> Result<T, Error> {
+    let initial = it
+        .next()
+        .ok_or_else(|| Error::from("Internal Error: Iterator was expected to be non-empty"))?;
+    it.fold(initial, |acc, elem| Ok(f(acc?, elem?)))
 }
-
 
 // Implementation of AbstractSyntaxTree for elements of Regex
 
@@ -63,7 +64,7 @@ impl AbstractSyntaxTree for Quantified {
                 let lower_autos = (0..*lower).map(|_| make());
                 let upper_auto = iter::once(Ok(make()?.closure()));
                 fold(lower_autos.chain(upper_auto), Automata::concat)
-            },
+            }
             Some(Quantifier::Range((lower, Some(upper)))) => {
                 let lower_autos = (0..*lower).map(|_| make());
                 let upper_autos = (*lower..*upper).map(|_| Ok(make()?.optional()));

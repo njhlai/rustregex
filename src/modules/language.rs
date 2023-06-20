@@ -1,10 +1,7 @@
 use super::ast::AbstractSyntaxTree;
 use super::automata::Automata;
 use super::error::Error;
-use super::{
-    grammar,
-    grammar::{Grammar, Regex},
-};
+use super::grammar::{self, Grammar, Regex};
 
 /// A modal for formal language
 pub struct Language<T> {
