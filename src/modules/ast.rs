@@ -3,8 +3,8 @@ use std::slice::Iter;
 use super::automata::Automata;
 use super::error::Error;
 use super::grammar::{
-    Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, Expression, Match, Quantifiable, Quantified,
-    Quantifier, SubExpression,
+    Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, Expression, Group, Match, Quantifiable,
+    Quantified, Quantifier, SubExpression,
 };
 
 /// A trait that allows types to be compiled into an [`Automata`].
@@ -23,6 +23,8 @@ fn fold<T: AbstractSyntaxTree>(
 
     it.fold(initial.compile(), |acc, subsequent| Ok(f(acc?, subsequent.compile()?)))
 }
+
+// Implementation of AbstractSyntaxTree for elements of Regex
 
 impl AbstractSyntaxTree for Expression {
     fn compile(&self) -> Result<Automata, Error> {
@@ -85,6 +87,14 @@ impl AbstractSyntaxTree for Quantifiable {
             Quantifiable::Match(m) => m.compile(),
             Quantifiable::Backreference(_) => Err(Error::from("Internal Error: Backreference not implemented!")),
         }
+    }
+}
+
+impl AbstractSyntaxTree for Group {
+    fn compile(&self) -> Result<Automata, Error> {
+        println!("Non capturing mode: {}", self.0);
+
+        self.1.compile()
     }
 }
 

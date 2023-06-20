@@ -2,7 +2,7 @@ use std::iter;
 
 use crate::union;
 
-use super::alphabet::{any, character, end, escaped, number};
+use super::alphabet::{any, character, end, escaped, number, string};
 use super::monadic_parser::MonadicParser;
 
 /// A [`MonadicParser`] defining the rules of a formal grammar.
@@ -106,18 +106,16 @@ fn quantifiable() -> MonadicParser<Quantifiable> {
     )
 }
 
-/// `Group ::= '(' Expression ')'`
-pub type Group = Expression;
-// /// `Group ::= '(' ":?"? Expression ')'`
+/// `Group ::= '(' ":?"? Expression ')'`
+pub type Group = (bool, Expression);
 // pub struct Group {
 //     non_capturing: bool,
 //     expr: Box<Expression>,
 // }
-// type Group = (bool, Expression);
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Group`].
 fn group() -> MonadicParser<Group> {
-    character('(') >> MonadicParser::lazy(expression) << character(')')
+    character('(') >> string(":?").exists() & MonadicParser::lazy(expression) << character(')')
     // (character('(') >> string(":?").exists() & expression() << character(')')).map(
     //     |(non_capturing, expr)| {
     //         Some(Group {
