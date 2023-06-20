@@ -213,6 +213,7 @@ fn character_class() -> MonadicParser<CharacterClass> {
 }
 
 /// Returns a [`MonadicParser`] associated to the grammar rule `Char`.
+#[rustfmt::skip]
 fn char() -> MonadicParser<char> {
     let special_char = |c: &char| {
         matches!(c, '^' | '$' | '|' | '*' | '?' | '+' | '.' | '\\' | '-' | '(' | ')' | '{' | '}' | '[' | ']')
