@@ -12,22 +12,27 @@ use super::error::Error;
 use self::grammar::Regex;
 use self::language::Language;
 
+/// A wrapper around an [`Automata`] defining a parsed regular expression.
 pub struct RegExp(Automata);
 
 impl RegExp {
+    /// Returns `true` if expr matches the regular expression entirely.
     pub fn full_match(&self, expr: &str) -> bool {
         self.0.full_match(expr)
     }
 
+    /// Returns the longest substring of `expr` which matches the regular expression, or `None` if no such substring of `expr` exists.
     pub fn greedy_search(&self, expr: &str) -> Option<String> {
         self.0.greedy_search(expr)
     }
 
+    /// Returns a list of all substrings of `expr` which matches the regular expression.
     pub fn global_search(&self, expr: &str) -> Vec<String> {
         self.0.global_search(expr)
     }
 }
 
+/// Initialise an instance of [`Language<Regex>`], a [`Language`] defining the Regex language.
 pub fn init() -> Language<Regex> {
     Language::new(grammar::regex())
 }
