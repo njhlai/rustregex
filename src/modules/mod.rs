@@ -1,5 +1,4 @@
 mod automata;
 mod error;
-mod parser;
-pub mod regexp;
+pub mod regex;
 mod state;

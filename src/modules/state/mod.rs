@@ -3,7 +3,6 @@ mod lambda;
 mod token;
 mod trivial;
 
-pub use self::anchor::Anchor;
 pub use self::anchor::AnchorState;
 pub use self::lambda::LambdaState;
 pub use self::token::TokenState;
@@ -13,6 +12,8 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
+
+use super::regex::Anchor;
 
 pub trait State {
     fn epsilon(&self, anchors: &[Anchor]) -> &[Rc<RefCell<dyn State>>];

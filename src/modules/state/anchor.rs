@@ -3,14 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{ptr, slice};
 
-use super::State;
-
-#[derive(PartialEq)]
-pub enum Anchor {
-    Start,
-    End,
-    WordBoundary,
-}
+use super::{Anchor, State};
 
 pub struct AnchorState {
     anchor: Anchor,
