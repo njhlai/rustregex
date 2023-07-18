@@ -21,9 +21,16 @@ impl Automata {
         Automata { start, end }
     }
 
-    pub fn from_lambda(lambda: fn(char) -> bool) -> Self {
+    pub fn from_lambda<F: Fn(char) -> bool + 'static>(lambda: F) -> Self {
         let end = TrivialState::make_rc();
         let start = Rc::new(RefCell::new(LambdaState::new(lambda, end.clone())));
+
+        Automata { start, end }
+    }
+
+    pub fn from_closure(closure: Box<dyn Fn(char) -> bool>) -> Self {
+        let end = TrivialState::make_rc();
+        let start = Rc::new(RefCell::new(LambdaState::new_with_box(closure, end.clone())));
 
         Automata { start, end }
     }

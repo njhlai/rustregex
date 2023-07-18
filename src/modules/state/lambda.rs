@@ -7,12 +7,16 @@ use super::{Anchor, State};
 
 pub struct LambdaState {
     dest: Rc<RefCell<dyn State>>,
-    lambda: fn(char) -> bool,
+    lambda: Box<dyn Fn(char) -> bool>,
 }
 
 impl LambdaState {
-    pub fn new(lambda: fn(char) -> bool, dest: Rc<RefCell<dyn State>>) -> Self {
-        LambdaState { dest, lambda }
+    pub fn new<F: Fn(char) -> bool + 'static>(lambda: F, dest: Rc<RefCell<dyn State>>) -> Self {
+        LambdaState { dest, lambda: Box::new(lambda) }
+    }
+
+    pub fn new_with_box(closure: Box<dyn Fn(char) -> bool>, dest: Rc<RefCell<dyn State>>) -> Self {
+        LambdaState { dest, lambda: closure }
     }
 }
 

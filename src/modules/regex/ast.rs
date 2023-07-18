@@ -3,8 +3,8 @@ use std::iter;
 use super::{Automata, Error};
 
 use super::grammar::{
-    Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, Expression, Group, Match, Quantifiable,
-    Quantified, Quantifier, SubExpression,
+    Anchor, BasicExpression, CharacterClass, CharacterGroup, CharacterGroupItem, CharacterRange, Expression, Group, Match,
+    Quantifiable, Quantified, Quantifier, SubExpression,
 };
 
 /// A trait that allows types to be compiled into an [`Automata`].
@@ -127,9 +127,17 @@ impl AbstractSyntaxTree for CharacterGroupItem {
     fn compile(&self) -> Result<Automata, Error> {
         match self {
             CharacterGroupItem::CharacterClass(cc) => cc.compile(),
-            CharacterGroupItem::CharacterRange(_) => todo!(),
+            CharacterGroupItem::CharacterRange(cr) => cr.compile(),
             CharacterGroupItem::Char(c) => c.compile(),
         }
+    }
+}
+
+impl AbstractSyntaxTree for CharacterRange {
+    fn compile(&self) -> Result<Automata, Error> {
+        let (lower, upper) = *self;
+
+        Ok(Automata::from_closure(Box::new(move |c| (lower..=upper).contains(&c))))
     }
 }
 
