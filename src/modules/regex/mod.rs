@@ -238,6 +238,79 @@ mod tests {
     }
 
     #[test]
+    fn regex_character_groups() {
+        let regex = init();
+
+        {
+            let compiled_regexp = regex.compile("[b-d]");
+            assert!(compiled_regexp.is_ok());
+            let regexp = compiled_regexp.unwrap();
+
+            assert!(!regexp.full_match(""));
+            assert!(!regexp.full_match("a"));
+            assert!(regexp.full_match("b"));
+            assert!(regexp.full_match("c"));
+            assert!(regexp.full_match("d"));
+            assert!(!regexp.full_match("e"));
+        }
+        {
+            let compiled_regexp = regex.compile("[bcd]");
+            assert!(compiled_regexp.is_ok());
+            let regexp = compiled_regexp.unwrap();
+
+            assert!(!regexp.full_match(""));
+            assert!(!regexp.full_match("a"));
+            assert!(regexp.full_match("b"));
+            assert!(regexp.full_match("c"));
+            assert!(regexp.full_match("d"));
+            assert!(!regexp.full_match("e"));
+        }
+        {
+            let compiled_regexp = regex.compile(r"[\d]");
+            assert!(compiled_regexp.is_ok());
+            let regexp = compiled_regexp.unwrap();
+
+            assert!(regexp.full_match("0"));
+            assert!(regexp.full_match("5"));
+            assert!(regexp.full_match("8"));
+            assert!(!regexp.full_match("O"));
+            assert!(!regexp.full_match("a"));
+            assert!(!regexp.full_match("#"));
+        }
+        {
+            let compiled_regexp = regex.compile("[3v-x1b-d2]");
+            assert!(compiled_regexp.is_ok());
+            let regexp = compiled_regexp.unwrap();
+
+            assert!(!regexp.full_match(""));
+            assert!(!regexp.full_match("a"));
+            assert!(regexp.full_match("b"));
+            assert!(regexp.full_match("c"));
+            assert!(regexp.full_match("d"));
+            assert!(!regexp.full_match("e"));
+            assert!(!regexp.full_match("u"));
+            assert!(regexp.full_match("v"));
+            assert!(regexp.full_match("w"));
+            assert!(regexp.full_match("x"));
+            assert!(!regexp.full_match("y"));
+            assert!(!regexp.full_match("0"));
+            assert!(regexp.full_match("1"));
+            assert!(regexp.full_match("2"));
+            assert!(regexp.full_match("3"));
+            assert!(!regexp.full_match("4"));
+        }
+        {
+            let compiled_regexp = regex.compile("[a-zA-Z0-9]+");
+            assert!(compiled_regexp.is_ok());
+            let regexp = compiled_regexp.unwrap();
+
+            let chars: String = ('a'..='z').chain('0'..='9').chain('A'..='Z').collect();
+
+            assert!(regexp.full_match(&chars));
+        }
+    }
+
+    #[test]
     fn regex_multichar_closure() {
         let regex = init();
 
