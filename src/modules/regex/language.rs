@@ -1,6 +1,7 @@
 use super::{Automata, Error};
 
 use super::ast::AbstractSyntaxTree;
+use super::context::Context;
 use super::grammar::Grammar;
 
 /// A modal for formal language
@@ -15,9 +16,12 @@ impl<T: AbstractSyntaxTree + 'static> Language<T> {
     }
 
     /// Parses `expr` using [`Language`]'s grammar.
-    pub fn parse(&self, expr: &str) -> Result<Automata, Error> {
-        self.syntax(expr)
-            .ok_or_else(|| Error::from("Internal error: `expr` parsed into an `None` Expression"))?
+    pub fn parse<C: Context<T>>(&self, expr: &str, mut context: C) -> Result<Automata, Error> {
+        context
+            .process(
+                self.syntax(expr)
+                    .ok_or_else(|| Error::from("Internal error: `expr` parsed into an `None` Expression"))?,
+            )
             .compile()
     }
 

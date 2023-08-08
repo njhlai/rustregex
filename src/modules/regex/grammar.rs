@@ -98,23 +98,17 @@ fn quantifiable() -> MonadicParser<Quantifiable> {
 }
 
 /// `Group ::= '(' ":?"? Expression ')'`
-pub type Group = (bool, Expression);
-// pub struct Group {
-//     non_capturing: bool,
-//     expr: Box<Expression>,
-// }
+#[derive(Debug)]
+pub struct Group {
+    pub non_capturing: bool,
+    pub index: usize,
+    pub expr: Box<Expression>,
+}
 
 /// Returns a [`MonadicParser`] associated to the grammar rule [`Group`].
 fn group() -> MonadicParser<Group> {
-    character('(') >> string(":?").exists() & MonadicParser::lazy(expression) << character(')')
-    // (character('(') >> string(":?").exists() & expression() << character(')')).map(
-    //     |(non_capturing, expr)| {
-    //         Some(Group {
-    //             non_capturing: non_capturing,
-    //             expr: Box::new(expr),
-    //         })
-    //     },
-    // )
+    (character('(') >> string(":?").exists() & MonadicParser::lazy(expression) << character(')'))
+        .map(|(non_capturing, expr)| Some(Group { non_capturing, index: 0, expr: Box::new(expr) }))
 }
 
 /// `Match ::= '.' | CharacterClass | CharacterGroup | Char`

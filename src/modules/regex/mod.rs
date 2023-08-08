@@ -1,5 +1,7 @@
 mod alphabet;
 mod ast;
+#[allow(clippy::module_name_repetitions)]
+mod context;
 mod grammar;
 mod language;
 #[allow(clippy::module_name_repetitions)]
@@ -10,6 +12,7 @@ pub use self::grammar::Anchor;
 use super::automata::Automata;
 use super::error::Error;
 
+use self::context::RegexContext;
 use self::grammar::Regex;
 use self::language::Language;
 
@@ -41,7 +44,7 @@ pub fn init() -> Language<Regex> {
 impl Language<Regex> {
     /// Compiles `expr` as a regular expression into a [`RegExp`].
     pub fn compile(&self, expr: &str) -> Result<RegExp, Error> {
-        Ok(RegExp(self.parse(expr)?))
+        Ok(RegExp(self.parse(expr, RegexContext::init())?))
     }
 }
 

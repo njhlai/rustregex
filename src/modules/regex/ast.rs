@@ -87,9 +87,10 @@ impl AbstractSyntaxTree for Quantifiable {
 
 impl AbstractSyntaxTree for Group {
     fn compile(&self) -> Result<Automata, Error> {
-        println!("Non capturing mode: {}", self.0);
+        println!("index: {}", self.index);
+        println!("Non capturing mode: {}", self.non_capturing);
 
-        self.1.compile()
+        self.expr.compile()
     }
 }
 
