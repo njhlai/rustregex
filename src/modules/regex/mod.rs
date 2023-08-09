@@ -44,7 +44,7 @@ pub fn init() -> Language<Regex> {
 impl Language<Regex> {
     /// Compiles `expr` as a regular expression into a [`RegExp`].
     pub fn compile(&self, expr: &str) -> Result<RegExp, Error> {
-        Ok(RegExp(self.parse(expr, RegexContext::init())?))
+        Ok(RegExp(self.parse(expr, Some(RegexContext::init()))?))
     }
 }
 
