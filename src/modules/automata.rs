@@ -185,16 +185,15 @@ impl Automata {
 
 impl Debug for Automata {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        f.debug_struct("NFA").field("start", &self.start).finish()
+        f.debug_struct("NFA")
+            .field("start", &self.start)
+            .finish_non_exhaustive()
     }
 }
 
 fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     fn traverse_epsilons(
-        destinations: &mut Vec<StatePtr>,
-        visited_states: &mut Vec<StatePtr>,
-        state: &StatePtr,
-        anchors: &[Anchor],
+        destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr, anchors: &[Anchor],
     ) {
         let state_locked = state.borrow();
         let reachables = state_locked.epsilon(anchors);
@@ -249,11 +248,7 @@ impl<'a> Iterator for TransitionIter<'a> {
 }
 
 fn transition_iter(expr: &str) -> TransitionIter {
-    TransitionIter {
-        it: expr.chars(),
-        current: None,
-        index: 0,
-    }
+    IntoIter { it: expr.chars(), current: None, index: 0 }
 }
 
 enum TransitionItem {
@@ -365,10 +360,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -403,10 +395,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), Vec::<String>::new());
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -438,10 +427,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -473,10 +459,7 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
 
-        assert_eq!(
-            nfa.greedy_search("abaaaaaa"),
-            Some(String::from("abaaaaaa"))
-        );
+        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
         assert_eq!(nfa.greedy_search("abab"), Some(String::from("abab")));
         assert_eq!(nfa.greedy_search("abad"), Some(String::from("aba")));
         assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
