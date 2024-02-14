@@ -136,7 +136,7 @@ impl Automata {
                             .collect();
                     }
                 }
-                TransitionItem::Epsilon((r, anchors)) => {
+                TransitionItem::Anchors((r, anchors)) => {
                     current_states.push((None, vec![self.start.clone()]));
 
                     for (match_r, states) in &mut current_states {
@@ -253,7 +253,7 @@ fn transition_iter(expr: &str) -> TransitionIter {
 
 enum TransitionItem {
     Char(char),
-    Epsilon((usize, Vec<Anchor>)),
+    Anchors((usize, Vec<Anchor>)),
 }
 
 impl TransitionItem {
@@ -274,7 +274,7 @@ impl TransitionItem {
             anchors.push(Anchor::WordBoundary);
         }
 
-        TransitionItem::Epsilon((index, anchors))
+        TransitionItem::Anchors((index, anchors))
     }
 }
 
