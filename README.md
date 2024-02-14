@@ -1,7 +1,7 @@
 # rustregex
 
 ## About
-rustregex is a toy regex parser written in Rust.
+rustregex is a toy regex parser written in [Rust](https://www.rust-lang.org/), with no other dependencies beyond the Rust Standard Library [std](https://doc.rust-lang.org/std/).
 
 ## Requirements
 - [Rust](https://www.rust-lang.org/). Recommended to use Rust through [rustup](https://rustup.rs/).
