@@ -61,15 +61,16 @@ impl AbstractSyntaxTree for Quantified {
             Some(Quantifier::ZeroOrMore) => Ok(make()?.closure()),
             Some(Quantifier::OneOrMore) => Ok(make()?.plus()),
             Some(Quantifier::ZeroOrOne) => Ok(make()?.optional()),
-            Some(Quantifier::Range((lower, None))) => {
+            Some(Quantifier::Range((lower, maybe_upper))) => {
                 let lower_autos = (0..*lower).map(|_| make());
-                let upper_auto = iter::once(Ok(make()?.closure()));
-                fold(lower_autos.chain(upper_auto), Automata::concat)
-            }
-            Some(Quantifier::Range((lower, Some(upper)))) => {
-                let lower_autos = (0..*lower).map(|_| make());
-                let upper_autos = (*lower..*upper).map(|_| Ok(make()?.optional()));
-                fold(lower_autos.chain(upper_autos), Automata::concat)
+
+                let upper: Vec<Result<Automata, Error>> = if let Some(upper) = maybe_upper {
+                    (*lower..*upper).map(|_| Ok(make()?.optional())).collect()
+                } else {
+                    iter::once(Ok(make()?.closure())).collect()
+                };
+
+                fold(lower_autos.chain(upper), Automata::concat)
             }
         }
     }

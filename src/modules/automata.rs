@@ -136,7 +136,7 @@ impl Automata {
                             .collect();
                     }
                 }
-                TransitionItem::Epsilon((r, anchors)) => {
+                TransitionItem::Anchors((r, anchors)) => {
                     current_states.push((None, vec![self.start.clone()]));
 
                     for (match_r, states) in &mut current_states {
@@ -185,16 +185,15 @@ impl Automata {
 
 impl Debug for Automata {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        f.debug_struct("NFA").field("start", &self.start).finish()
+        f.debug_struct("NFA")
+            .field("start", &self.start)
+            .finish_non_exhaustive()
     }
 }
 
 fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     fn traverse_epsilons(
-        destinations: &mut Vec<StatePtr>,
-        visited_states: &mut Vec<StatePtr>,
-        state: &StatePtr,
-        anchors: &[Anchor],
+        destinations: &mut Vec<StatePtr>, visited_states: &mut Vec<StatePtr>, state: &StatePtr, anchors: &[Anchor],
     ) {
         let state_locked = state.borrow();
         let reachables = state_locked.epsilon(anchors);
@@ -223,50 +222,46 @@ fn exhaust_epsilons(states: &[StatePtr], anchors: &[Anchor]) -> Vec<StatePtr> {
     destinations
 }
 
-struct TransitionIter<'a> {
-    it: Chars<'a>,
-    current: Option<char>,
-    index: usize,
-}
+fn transition_iter(expr: &str) -> impl Iterator<Item = TransitionItem> + '_ {
+    struct IntoIter<'a> {
+        it: Chars<'a>,
+        current: Option<char>,
+        index: usize,
+    }
 
-impl<'a> Iterator for TransitionIter<'a> {
-    type Item = TransitionItem;
+    impl<'a> Iterator for IntoIter<'a> {
+        type Item = TransitionItem;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        let return_char = self.index % 2 == 1;
-        self.index += 1;
+        fn next(&mut self) -> Option<Self::Item> {
+            let return_char = self.index % 2 == 1;
+            self.index += 1;
 
-        if return_char {
-            self.current.map(TransitionItem::Char)
-        } else {
-            let next = self.it.next();
-            let eps = TransitionItem::get_anchors(self.index / 2, self.current, next);
-            self.current = next;
+            if return_char {
+                self.current.map(Self::Item::Char)
+            } else {
+                let next = self.it.next();
+                let eps = TransitionItem::get_anchors(self.index / 2, self.current, next);
+                self.current = next;
 
-            Some(eps)
+                Some(eps)
+            }
         }
     }
-}
 
-fn transition_iter(expr: &str) -> TransitionIter {
-    TransitionIter {
-        it: expr.chars(),
-        current: None,
-        index: 0,
-    }
+    IntoIter { it: expr.chars(), current: None, index: 0 }
 }
 
 enum TransitionItem {
     Char(char),
-    Epsilon((usize, Vec<Anchor>)),
+    Anchors((usize, Vec<Anchor>)),
 }
 
 impl TransitionItem {
     fn get_anchors(index: usize, current: Option<char>, next: Option<char>) -> Self {
         let mut anchors = vec![];
 
-        if let (Some(p), Some(n)) = (current, next) {
-            if p.is_alphanumeric() != n.is_alphanumeric() {
+        if let (Some(c), Some(n)) = (current, next) {
+            if c.is_alphanumeric() != n.is_alphanumeric() {
                 anchors.push(Anchor::WordBoundary);
             }
         } else {
@@ -279,7 +274,7 @@ impl TransitionItem {
             anchors.push(Anchor::WordBoundary);
         }
 
-        TransitionItem::Epsilon((index, anchors))
+        TransitionItem::Anchors((index, anchors))
     }
 }
 
@@ -365,10 +360,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -403,10 +395,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), Vec::<String>::new());
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -438,10 +427,7 @@ mod tests {
         assert_eq!(nfa.greedy_search("ab"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("ba"), Some(String::from("a")));
         assert_eq!(nfa.greedy_search("basic"), Some(String::from("a")));
-        assert_eq!(
-            nfa.greedy_search("this is a string"),
-            Some(String::from("a"))
-        );
+        assert_eq!(nfa.greedy_search("this is a string"), Some(String::from("a")));
 
         assert_eq!(nfa.global_search(""), vec![""]);
         assert_eq!(nfa.global_search("a"), vec!["a"]);
@@ -473,10 +459,7 @@ mod tests {
         assert!(!nfa.full_match("aaaaaaac"));
         assert!(!nfa.full_match("cc"));
 
-        assert_eq!(
-            nfa.greedy_search("abaaaaaa"),
-            Some(String::from("abaaaaaa"))
-        );
+        assert_eq!(nfa.greedy_search("abaaaaaa"), Some(String::from("abaaaaaa")));
         assert_eq!(nfa.greedy_search("abab"), Some(String::from("abab")));
         assert_eq!(nfa.greedy_search("abad"), Some(String::from("aba")));
         assert_eq!(nfa.greedy_search("c"), Some(String::from("c")));
